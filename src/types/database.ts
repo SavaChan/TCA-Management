@@ -57,7 +57,7 @@ export interface Prenotazione {
   note?: string;
   created_at: string;
   updated_at: string;
-  soci?: Socio;
+  soci?: Partial<Socio>;
 }
 
 export interface Pagamento {

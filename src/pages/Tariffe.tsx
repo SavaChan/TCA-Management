@@ -1,0 +1,208 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Edit, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Tariffa } from '@/types/database';
+import { toast } from '@/hooks/use-toast';
+
+const Tariffe = () => {
+  const [tariffe, setTariffe] = useState<Tariffa[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadTariffe();
+  }, []);
+
+  const loadTariffe = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tariffe')
+        .select('*')
+        .eq('attivo', true)
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      setTariffe(data || []);
+    } catch (error) {
+      console.error('Error loading tariffe:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile caricare le tariffe",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTipoLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'singolare': return 'Singolare';
+      case 'doppio': return 'Doppio';
+      case 'corso': return 'Corso';
+      case 'lezione': return 'Lezione';
+      default: return tipo;
+    }
+  };
+
+  const getCampoLabel = (campo: string) => {
+    switch (campo) {
+      case 'scoperto': return 'Scoperto';
+      case 'coperto': return 'Coperto';
+      default: return campo;
+    }
+  };
+
+  if (loading) return <div>Caricamento tariffe...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Gestione Tariffe</h2>
+          <p className="text-muted-foreground">
+            Configura i prezzi per i diversi tipi di prenotazione
+          </p>
+        </div>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Aggiungi Tariffa
+        </Button>
+      </div>
+
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Tariffe Attuali</CardTitle>
+            <CardDescription>
+              Elenco di tutte le tariffe configurate nel sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {tariffe.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Nessuna tariffa configurata</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome Tariffa</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Campo</TableHead>
+                    <TableHead>Orario</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Prezzo Ora</TableHead>
+                    <TableHead className="text-right">Prezzo Mezz'ora</TableHead>
+                    <TableHead className="text-right">Azioni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tariffe.map((tariffa) => (
+                    <TableRow key={tariffa.id}>
+                      <TableCell className="font-medium">
+                        {tariffa.nome}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {getTipoLabel(tariffa.tipo_prenotazione)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {getCampoLabel(tariffa.tipo_campo)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={tariffa.diurno ? "default" : "destructive"}>
+                          {tariffa.diurno ? 'Diurno' : 'Notturno'}
+                        </Badge>
+                      </TableCell>
+                    <TableCell>
+                      <Badge variant={tariffa.soci ? "default" : "secondary"}>
+                        {tariffa.soci ? 'Soci' : 'Non Soci'}
+                      </Badge>
+                    </TableCell>
+                      <TableCell className="text-right font-mono">
+                        €{tariffa.prezzo_ora.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        €{tariffa.prezzo_mezz_ora.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifica
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tariffe Soci
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {tariffe.filter(t => t.soci).length}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tariffe Non Soci
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {tariffe.filter(t => !t.soci).length}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Prezzo Min/Ora
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                €{tariffe.length > 0 ? Math.min(...tariffe.map(t => t.prezzo_ora)).toFixed(2) : '0.00'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Prezzo Max/Ora
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                €{tariffe.length > 0 ? Math.max(...tariffe.map(t => t.prezzo_ora)).toFixed(2) : '0.00'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Tariffe;

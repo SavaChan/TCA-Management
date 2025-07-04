@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,10 +9,11 @@ import {
   LogOut,
   User
 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const Layout = () => {
   const { isAuthenticated, profile, signOut, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Caricamento...</div>;
@@ -63,21 +64,29 @@ const Layout = () => {
       <div className="container mx-auto px-4 py-6">
         <nav className="mb-6">
           <div className="flex space-x-4">
-            <Button variant="outline" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Soci</span>
+            <Button asChild variant={location.pathname === '/soci' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/soci">
+                <Users className="h-4 w-4" />
+                <span>Soci</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span>Prenotazioni</span>
+            <Button asChild variant={location.pathname === '/prenotazioni' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/prenotazioni">
+                <Calendar className="h-4 w-4" />
+                <span>Prenotazioni</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Report</span>
+            <Button asChild variant={location.pathname === '/report' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/report">
+                <BarChart3 className="h-4 w-4" />
+                <span>Report</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Tariffe</span>
+            <Button asChild variant={location.pathname === '/tariffe' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/tariffe">
+                <Settings className="h-4 w-4" />
+                <span>Tariffe</span>
+              </Link>
             </Button>
           </div>
         </nav>
