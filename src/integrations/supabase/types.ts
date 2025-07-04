@@ -9,7 +9,220 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      pagamenti: {
+        Row: {
+          created_at: string
+          data_pagamento: string
+          id: string
+          importo: number
+          metodo_pagamento: string | null
+          note: string | null
+          prenotazione_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          importo: number
+          metodo_pagamento?: string | null
+          note?: string | null
+          prenotazione_id: string
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          importo?: number
+          metodo_pagamento?: string | null
+          note?: string | null
+          prenotazione_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamenti_prenotazione_id_fkey"
+            columns: ["prenotazione_id"]
+            isOneToOne: false
+            referencedRelation: "prenotazioni"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prenotazioni: {
+        Row: {
+          campo: number
+          created_at: string
+          data: string
+          diurno: boolean
+          id: string
+          importo: number
+          note: string | null
+          ora_fine: string
+          ora_inizio: string
+          socio_id: string
+          stato_pagamento: Database["public"]["Enums"]["stato_pagamento"]
+          tipo_campo: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at: string
+        }
+        Insert: {
+          campo: number
+          created_at?: string
+          data: string
+          diurno: boolean
+          id?: string
+          importo: number
+          note?: string | null
+          ora_fine: string
+          ora_inizio: string
+          socio_id: string
+          stato_pagamento?: Database["public"]["Enums"]["stato_pagamento"]
+          tipo_campo: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at?: string
+        }
+        Update: {
+          campo?: number
+          created_at?: string
+          data?: string
+          diurno?: boolean
+          id?: string
+          importo?: number
+          note?: string | null
+          ora_fine?: string
+          ora_inizio?: string
+          socio_id?: string
+          stato_pagamento?: Database["public"]["Enums"]["stato_pagamento"]
+          tipo_campo?: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione?: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prenotazioni_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "soci"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          ruolo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          ruolo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          ruolo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      soci: {
+        Row: {
+          attivo: boolean
+          certificato_medico_scadenza: string | null
+          classifica_fitp: string | null
+          cognome: string
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          note: string | null
+          telefono: string | null
+          tipo_socio: Database["public"]["Enums"]["tipo_socio"]
+          updated_at: string
+        }
+        Insert: {
+          attivo?: boolean
+          certificato_medico_scadenza?: string | null
+          classifica_fitp?: string | null
+          cognome: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          note?: string | null
+          telefono?: string | null
+          tipo_socio: Database["public"]["Enums"]["tipo_socio"]
+          updated_at?: string
+        }
+        Update: {
+          attivo?: boolean
+          certificato_medico_scadenza?: string | null
+          classifica_fitp?: string | null
+          cognome?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          note?: string | null
+          telefono?: string | null
+          tipo_socio?: Database["public"]["Enums"]["tipo_socio"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tariffe: {
+        Row: {
+          attivo: boolean
+          created_at: string
+          diurno: boolean
+          id: string
+          nome: string
+          prezzo_mezz_ora: number
+          prezzo_ora: number
+          soci: boolean
+          tipo_campo: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at: string
+        }
+        Insert: {
+          attivo?: boolean
+          created_at?: string
+          diurno?: boolean
+          id?: string
+          nome: string
+          prezzo_mezz_ora: number
+          prezzo_ora: number
+          soci?: boolean
+          tipo_campo: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at?: string
+        }
+        Update: {
+          attivo?: boolean
+          created_at?: string
+          diurno?: boolean
+          id?: string
+          nome?: string
+          prezzo_mezz_ora?: number
+          prezzo_ora?: number
+          soci?: boolean
+          tipo_campo?: Database["public"]["Enums"]["tipo_campo"]
+          tipo_prenotazione?: Database["public"]["Enums"]["tipo_prenotazione"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +231,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      stato_pagamento: "pagato" | "da_pagare"
+      tipo_campo: "scoperto" | "coperto"
+      tipo_prenotazione: "singolare" | "doppio" | "corso" | "lezione"
+      tipo_socio: "frequentatore" | "non_agonista" | "agonista" | "maestro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +349,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      stato_pagamento: ["pagato", "da_pagare"],
+      tipo_campo: ["scoperto", "coperto"],
+      tipo_prenotazione: ["singolare", "doppio", "corso", "lezione"],
+      tipo_socio: ["frequentatore", "non_agonista", "agonista", "maestro"],
+    },
   },
 } as const
