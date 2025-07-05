@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ospiti: {
+        Row: {
+          cognome: string
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          note: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          cognome: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          note?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cognome?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          note?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pagamenti: {
         Row: {
           created_at: string
@@ -58,7 +91,8 @@ export type Database = {
           note: string | null
           ora_fine: string
           ora_inizio: string
-          socio_id: string
+          ospite_id: string | null
+          socio_id: string | null
           stato_pagamento: Database["public"]["Enums"]["stato_pagamento"]
           tipo_campo: Database["public"]["Enums"]["tipo_campo"]
           tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
@@ -74,7 +108,8 @@ export type Database = {
           note?: string | null
           ora_fine: string
           ora_inizio: string
-          socio_id: string
+          ospite_id?: string | null
+          socio_id?: string | null
           stato_pagamento?: Database["public"]["Enums"]["stato_pagamento"]
           tipo_campo: Database["public"]["Enums"]["tipo_campo"]
           tipo_prenotazione: Database["public"]["Enums"]["tipo_prenotazione"]
@@ -90,13 +125,21 @@ export type Database = {
           note?: string | null
           ora_fine?: string
           ora_inizio?: string
-          socio_id?: string
+          ospite_id?: string | null
+          socio_id?: string | null
           stato_pagamento?: Database["public"]["Enums"]["stato_pagamento"]
           tipo_campo?: Database["public"]["Enums"]["tipo_campo"]
           tipo_prenotazione?: Database["public"]["Enums"]["tipo_prenotazione"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prenotazioni_ospite_id_fkey"
+            columns: ["ospite_id"]
+            isOneToOne: false
+            referencedRelation: "ospiti"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prenotazioni_socio_id_fkey"
             columns: ["socio_id"]

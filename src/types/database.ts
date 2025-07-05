@@ -42,9 +42,21 @@ export interface Tariffa {
   updated_at: string;
 }
 
+export interface Ospite {
+  id: string;
+  nome: string;
+  cognome: string;
+  telefono?: string;
+  email?: string;
+  note?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Prenotazione {
   id: string;
-  socio_id: string;
+  socio_id?: string;
+  ospite_id?: string;
   campo: number;
   data: string;
   ora_inizio: string;
@@ -58,6 +70,7 @@ export interface Prenotazione {
   created_at: string;
   updated_at: string;
   soci?: Partial<Socio>;
+  ospiti?: Partial<Ospite>;
 }
 
 export interface Pagamento {

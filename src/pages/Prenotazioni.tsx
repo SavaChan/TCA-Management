@@ -6,11 +6,18 @@ import { Calendar, Clock, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
+import PrenotazioneDialog from '@/components/PrenotazioneDialog';
 
 const Prenotazioni = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(new Date());
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    data: string;
+    oraInizio: string;
+    campo: number;
+  } | null>(null);
 
   useEffect(() => {
     loadPrenotazioni();
@@ -29,6 +36,11 @@ const Prenotazioni = () => {
         .select(`
           *,
           soci (
+            nome,
+            cognome,
+            telefono
+          ),
+          ospiti (
             nome,
             cognome,
             telefono
@@ -76,12 +88,36 @@ const Prenotazioni = () => {
   };
 
   const handleCellClick = (day: Date, time: string, campo: number) => {
-    const dayStr = day.toLocaleDateString('it-IT');
-    toast({
-      title: "Prenotazione",
-      description: `Cliccato su ${dayStr} alle ${time} per il Campo ${campo}`,
-    });
-    // Qui si può aggiungere la logica per creare/modificare prenotazioni
+    const prenotazione = getPrenotazioneForSlot(day, time, campo);
+    
+    if (prenotazione) {
+      // Esistente prenotazione - potremmo aprire un dialog di modifica in futuro
+      toast({
+        title: "Prenotazione esistente",
+        description: "Funzionalità di modifica in sviluppo",
+      });
+    } else {
+      // Nuova prenotazione
+      setSelectedSlot({
+        data: day.toISOString().split('T')[0],
+        oraInizio: time,
+        campo
+      });
+      setDialogOpen(true);
+    }
+  };
+
+  const handlePrenotazioneSuccess = () => {
+    loadPrenotazioni();
+  };
+
+  const getNomePrenotazione = (prenotazione: Prenotazione) => {
+    if (prenotazione.soci) {
+      return `${prenotazione.soci.nome} ${prenotazione.soci.cognome}`;
+    } else if (prenotazione.ospiti) {
+      return `${prenotazione.ospiti.nome} ${prenotazione.ospiti.cognome}`;
+    }
+    return 'Nome non disponibile';
   };
 
   const getPrenotazioneForSlot = (day: Date, time: string, campo: number) => {
@@ -177,9 +213,9 @@ const Prenotazioni = () => {
                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
                                  onClick={() => handleCellClick(day, time, 1)}
                                >
-                                 <div className="font-medium">
-                                   {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
-                                 </div>
+                                  <div className="font-medium">
+                                    {getNomePrenotazione(prenotazione)}
+                                  </div>
                                  <div>€{prenotazione.importo}</div>
                                </div>
                              ) : (
@@ -241,9 +277,9 @@ const Prenotazioni = () => {
                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
                                  onClick={() => handleCellClick(day, time, 2)}
                                >
-                                 <div className="font-medium">
-                                   {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
-                                 </div>
+                                  <div className="font-medium">
+                                    {getNomePrenotazione(prenotazione)}
+                                  </div>
                                  <div>€{prenotazione.importo}</div>
                                </div>
                              ) : (
@@ -288,6 +324,18 @@ const Prenotazioni = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog per nuova prenotazione */}
+      {selectedSlot && (
+        <PrenotazioneDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          data={selectedSlot.data}
+          oraInizio={selectedSlot.oraInizio}
+          campo={selectedSlot.campo}
+          onSuccess={handlePrenotazioneSuccess}
+        />
+      )}
     </div>
   );
 };
