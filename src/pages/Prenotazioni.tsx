@@ -137,6 +137,14 @@ const Prenotazioni = () => {
     }
   };
 
+  const getWeekNumber = (date: Date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  };
+
   const weekDays = getWeekDays();
   const timeSlots = getTimeSlots();
 
@@ -181,7 +189,7 @@ const Prenotazioni = () => {
               <span>Campo 1</span>
             </CardTitle>
             <CardDescription>
-              Settimana dal {weekDays[0].toLocaleDateString('it-IT')} al {weekDays[6].toLocaleDateString('it-IT')}
+              Settimana n.{getWeekNumber(weekDays[0])} - dal {weekDays[0].toLocaleDateString('it-IT')} al {weekDays[6].toLocaleDateString('it-IT')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -245,7 +253,7 @@ const Prenotazioni = () => {
               <span>Campo 2</span>
             </CardTitle>
             <CardDescription>
-              Settimana dal {weekDays[0].toLocaleDateString('it-IT')} al {weekDays[6].toLocaleDateString('it-IT')}
+              Settimana n.{getWeekNumber(weekDays[0])} - dal {weekDays[0].toLocaleDateString('it-IT')} al {weekDays[6].toLocaleDateString('it-IT')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -324,6 +332,11 @@ const Prenotazioni = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Firma */}
+      <div className="text-right">
+        <p className="text-xs text-muted-foreground">by Cesco</p>
+      </div>
 
       {/* Dialog per nuova prenotazione */}
       {selectedSlot && (
