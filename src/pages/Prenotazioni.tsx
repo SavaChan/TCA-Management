@@ -70,10 +70,18 @@ const Prenotazioni = () => {
     const slots = [];
     for (let hour = 8; hour <= 22; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
     slots.push('23:00');
     return slots;
+  };
+
+  const handleCellClick = (day: Date, time: string, campo: number) => {
+    const dayStr = day.toLocaleDateString('it-IT');
+    toast({
+      title: "Prenotazione",
+      description: `Cliccato su ${dayStr} alle ${time} per il Campo ${campo}`,
+    });
+    // Qui si può aggiungere la logica per creare/modificare prenotazioni
   };
 
   const getPrenotazioneForSlot = (day: Date, time: string, campo: number) => {
@@ -163,20 +171,26 @@ const Prenotazioni = () => {
                       {weekDays.map((day, dayIdx) => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 1);
                         return (
-                          <td key={dayIdx} className="p-1">
-                            {prenotazione ? (
-                              <div className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}>
-                                <div className="font-medium">
-                                  {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
-                                </div>
-                                <div>€{prenotazione.importo}</div>
-                              </div>
-                            ) : (
-                              <div className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100">
-                                Libero
-                              </div>
-                            )}
-                          </td>
+                           <td key={dayIdx} className="p-1">
+                             {prenotazione ? (
+                               <div 
+                                 className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
+                                 onClick={() => handleCellClick(day, time, 1)}
+                               >
+                                 <div className="font-medium">
+                                   {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
+                                 </div>
+                                 <div>€{prenotazione.importo}</div>
+                               </div>
+                             ) : (
+                               <div 
+                                 className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
+                                 onClick={() => handleCellClick(day, time, 1)}
+                               >
+                                 Libero
+                               </div>
+                             )}
+                           </td>
                         );
                       })}
                     </tr>
@@ -221,20 +235,26 @@ const Prenotazioni = () => {
                       {weekDays.map((day, dayIdx) => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 2);
                         return (
-                          <td key={dayIdx} className="p-1">
-                            {prenotazione ? (
-                              <div className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}>
-                                <div className="font-medium">
-                                  {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
-                                </div>
-                                <div>€{prenotazione.importo}</div>
-                              </div>
-                            ) : (
-                              <div className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100">
-                                Libero
-                              </div>
-                            )}
-                          </td>
+                           <td key={dayIdx} className="p-1">
+                             {prenotazione ? (
+                               <div 
+                                 className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
+                                 onClick={() => handleCellClick(day, time, 2)}
+                               >
+                                 <div className="font-medium">
+                                   {prenotazione.soci?.nome} {prenotazione.soci?.cognome}
+                                 </div>
+                                 <div>€{prenotazione.importo}</div>
+                               </div>
+                             ) : (
+                               <div 
+                                 className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
+                                 onClick={() => handleCellClick(day, time, 2)}
+                               >
+                                 Libero
+                               </div>
+                             )}
+                           </td>
                         );
                       })}
                     </tr>
