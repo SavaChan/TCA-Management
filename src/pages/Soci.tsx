@@ -4,15 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Socio } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
+import SocioDialog from '@/components/SocioDialog';
 
 const Soci = () => {
   const [soci, setSoci] = useState<Socio[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
 
   useEffect(() => {
     loadSoci();
@@ -65,6 +68,20 @@ const Soci = () => {
     }
   };
 
+  const handleAddSocio = () => {
+    setSelectedSocio(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditSocio = (socio: Socio) => {
+    setSelectedSocio(socio);
+    setDialogOpen(true);
+  };
+
+  const handleSocioSuccess = () => {
+    loadSoci();
+  };
+
   if (loading) return <div>Caricamento soci...</div>;
 
   return (
@@ -76,7 +93,7 @@ const Soci = () => {
             Gestisci i soci del tennis club
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddSocio}>
           <Plus className="h-4 w-4 mr-2" />
           Aggiungi Socio
         </Button>
@@ -148,7 +165,12 @@ const Soci = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditSocio(socio)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
                         Modifica
                       </Button>
                     </TableCell>
@@ -159,6 +181,14 @@ const Soci = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog per aggiunta/modifica socio */}
+      <SocioDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        socio={selectedSocio}
+        onSuccess={handleSocioSuccess}
+      />
     </div>
   );
 };
