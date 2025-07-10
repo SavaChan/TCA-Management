@@ -7,7 +7,8 @@ import {
   Settings, 
   BarChart3, 
   LogOut,
-  User
+  User,
+  Euro
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -80,6 +81,12 @@ const Layout = () => {
               <Link to="/report">
                 <BarChart3 className="h-4 w-4" />
                 <span>Report</span>
+              </Link>
+            </Button>
+            <Button asChild variant={location.pathname === '/finanze' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/finanze">
+                <Euro className="h-4 w-4" />
+                <span>Finanze</span>
               </Link>
             </Button>
             <Button asChild variant={location.pathname === '/tariffe' ? 'default' : 'outline'} className="flex items-center space-x-2">

@@ -2,22 +2,25 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users } from 'lucide-react';
+import { Calendar, Clock, Users, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import PrenotazioneDialog from '@/components/PrenotazioneDialog';
+import PagamentoDialog from '@/components/PagamentoDialog';
 
 const Prenotazioni = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pagamentoDialogOpen, setPagamentoDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
     data: string;
     oraInizio: string;
     campo: number;
   } | null>(null);
+  const [selectedPrenotazione, setSelectedPrenotazione] = useState<Prenotazione | null>(null);
 
   useEffect(() => {
     loadPrenotazioni();
@@ -91,11 +94,16 @@ const Prenotazioni = () => {
     const prenotazione = getPrenotazioneForSlot(day, time, campo);
     
     if (prenotazione) {
-      // Esistente prenotazione - potremmo aprire un dialog di modifica in futuro
-      toast({
-        title: "Prenotazione esistente",
-        description: "Funzionalità di modifica in sviluppo",
-      });
+      if (prenotazione.stato_pagamento === 'da_pagare') {
+        // Apri dialog di pagamento per prenotazioni non pagate
+        setSelectedPrenotazione(prenotazione);
+        setPagamentoDialogOpen(true);
+      } else {
+        toast({
+          title: "Prenotazione già pagata",
+          description: "Questa prenotazione è già stata saldata",
+        });
+      }
     } else {
       // Nuova prenotazione
       setSelectedSlot({
@@ -152,12 +160,16 @@ const Prenotazioni = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Prenotazioni</h2>
-          <p className="text-muted-foreground">
-            Gestione settimanale delle prenotazioni dei campi
-          </p>
+      {/* Header con nome club e logo */}
+      <div className="flex justify-between items-center border-b pb-4">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20">
+            <span className="text-xs text-muted-foreground">LOGO</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Tennis Club Arenzano</h1>
+            <p className="text-muted-foreground">Sistema gestione prenotazioni campi</p>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => {
@@ -346,6 +358,18 @@ const Prenotazioni = () => {
           data={selectedSlot.data}
           oraInizio={selectedSlot.oraInizio}
           campo={selectedSlot.campo}
+          onSuccess={handlePrenotazioneSuccess}
+        />
+      )}
+
+      {/* Dialog per pagamento */}
+      {selectedPrenotazione && (
+        <PagamentoDialog
+          open={pagamentoDialogOpen}
+          onOpenChange={setPagamentoDialogOpen}
+          prenotazioneId={selectedPrenotazione.id}
+          importoTotale={selectedPrenotazione.importo}
+          nomeCliente={getNomePrenotazione(selectedPrenotazione)}
           onSuccess={handlePrenotazioneSuccess}
         />
       )}

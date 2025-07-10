@@ -10,6 +10,7 @@ import Soci from "./pages/Soci";
 import Prenotazioni from "./pages/Prenotazioni";
 import Tariffe from "./pages/Tariffe";
 import Report from "./pages/Report";
+import ReportFinanziario from "./pages/ReportFinanziario";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="prenotazioni" element={<Prenotazioni />} />
             <Route path="tariffe" element={<Tariffe />} />
             <Route path="report" element={<Report />} />
+            <Route path="finanze" element={<ReportFinanziario />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
