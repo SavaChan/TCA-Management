@@ -8,7 +8,9 @@ import {
   BarChart3, 
   LogOut,
   User,
-  Euro
+  Euro,
+  UserPlus,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -71,6 +73,12 @@ const Layout = () => {
                 <span>Soci</span>
               </Link>
             </Button>
+            <Button asChild variant={location.pathname === '/ospiti' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/ospiti">
+                <UserPlus className="h-4 w-4" />
+                <span>Ospiti</span>
+              </Link>
+            </Button>
             <Button asChild variant={location.pathname === '/prenotazioni' ? 'default' : 'outline'} className="flex items-center space-x-2">
               <Link to="/prenotazioni">
                 <Calendar className="h-4 w-4" />
@@ -81,6 +89,12 @@ const Layout = () => {
               <Link to="/report">
                 <BarChart3 className="h-4 w-4" />
                 <span>Report</span>
+              </Link>
+            </Button>
+            <Button asChild variant={location.pathname === '/insoluti' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/insoluti">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Insoluti</span>
               </Link>
             </Button>
             <Button asChild variant={location.pathname === '/finanze' ? 'default' : 'outline'} className="flex items-center space-x-2">

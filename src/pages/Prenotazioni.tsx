@@ -137,12 +137,40 @@ const Prenotazioni = () => {
     );
   };
 
-  const getStatoPagamentoColor = (stato: string) => {
-    switch (stato) {
-      case 'pagato': return 'bg-blue-100 text-blue-800';
-      case 'da_pagare': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatoPagamentoColor = (prenotazione: Prenotazione) => {
+    if (prenotazione.stato_pagamento === 'pagato') {
+      // Controlla se ha pagamenti associati per determinare il tipo
+      return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
+    } else {
+      return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
     }
+  };
+
+  const getStatoPagamentoColorWithPayment = async (prenotazione: Prenotazione) => {
+    if (prenotazione.stato_pagamento === 'da_pagare') {
+      return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
+    }
+    
+    // Se è pagata, controlla il tipo di pagamento
+    try {
+      const { data: pagamenti } = await supabase
+        .from('pagamenti')
+        .select('metodo_pagamento_tipo')
+        .eq('prenotazione_id', prenotazione.id);
+      
+      if (pagamenti && pagamenti.length > 0) {
+        const hasContanti = pagamenti.some(p => p.metodo_pagamento_tipo === 'contanti');
+        if (hasContanti) {
+          return 'bg-cash-payment/30 text-cash-payment border border-cash-payment/40';
+        } else {
+          return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
+        }
+      }
+    } catch (error) {
+      console.error('Error checking payment type:', error);
+    }
+    
+    return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
   };
 
   const getWeekNumber = (date: Date) => {
@@ -229,9 +257,9 @@ const Prenotazioni = () => {
                         return (
                            <td key={dayIdx} className="p-1">
                              {prenotazione ? (
-                               <div 
-                                 className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
-                                 onClick={() => handleCellClick(day, time, 1)}
+                                <div 
+                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                  onClick={() => handleCellClick(day, time, 1)}
                                >
                                   <div className="font-medium">
                                     {getNomePrenotazione(prenotazione)}
@@ -293,9 +321,9 @@ const Prenotazioni = () => {
                         return (
                            <td key={dayIdx} className="p-1">
                              {prenotazione ? (
-                               <div 
-                                 className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione.stato_pagamento)}`}
-                                 onClick={() => handleCellClick(day, time, 2)}
+                                <div 
+                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                  onClick={() => handleCellClick(day, time, 2)}
                                >
                                   <div className="font-medium">
                                     {getNomePrenotazione(prenotazione)}

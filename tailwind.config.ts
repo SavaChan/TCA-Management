@@ -61,7 +61,10 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				'cash-payment': 'hsl(var(--cash-payment))',
+				'pos-payment': 'hsl(var(--pos-payment))',
+				'unpaid': 'hsl(var(--unpaid))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
