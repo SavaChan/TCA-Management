@@ -122,6 +122,30 @@ const PrenotazioneDialog = ({
     setLoading(true);
 
     try {
+      // Prima controlla se lo slot è già occupato
+      const { data: existingPrenotazione, error: checkError } = await supabase
+        .from('prenotazioni')
+        .select('id')
+        .eq('data', data)
+        .eq('ora_inizio', oraInizio)
+        .eq('campo', campo)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 significa "no rows found", che è quello che vogliamo
+        throw checkError;
+      }
+
+      if (existingPrenotazione) {
+        toast({
+          title: "Errore",
+          description: "Quest'ora è già prenotata",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       let socioId = null;
       let ospiteId = null;
 
@@ -163,7 +187,20 @@ const PrenotazioneDialog = ({
           stato_pagamento: 'da_pagare',
         }]);
 
-      if (prenotazioneError) throw prenotazioneError;
+      if (prenotazioneError) {
+        // Se è un errore di vincolo univoco
+        if (prenotazioneError.code === '23505') {
+          toast({
+            title: "Errore",
+            description: "Quest'ora è già prenotata",
+            variant: "destructive",
+          });
+        } else {
+          throw prenotazioneError;
+        }
+        setLoading(false);
+        return;
+      }
 
       toast({
         title: "Successo",
