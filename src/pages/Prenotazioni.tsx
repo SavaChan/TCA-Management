@@ -38,12 +38,6 @@ const Prenotazioni = () => {
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6); // Domenica
 
-      console.log('Loading prenotazioni for week:', {
-        startOfWeek: startOfWeek.toISOString().split('T')[0],
-        endOfWeek: endOfWeek.toISOString().split('T')[0],
-        selectedWeek: selectedWeek.toISOString().split('T')[0]
-      });
-
       const { data, error } = await supabase
         .from('prenotazioni')
         .select(`
@@ -65,7 +59,6 @@ const Prenotazioni = () => {
         .order('ora_inizio', { ascending: true });
 
       if (error) throw error;
-      console.log('Found prenotazioni:', data?.length, data);
       setPrenotazioni(data || []);
     } catch (error) {
       console.error('Error loading prenotazioni:', error);
@@ -154,9 +147,12 @@ const Prenotazioni = () => {
   };
 
   const handlePrenotazioneSuccess = () => {
-    console.log('Reloading prenotazioni after success...');
-    loadPrenotazioni();
-    loadPagamentiCache();
+    // Force refresh delle prenotazioni
+    setLoading(true);
+    setTimeout(() => {
+      loadPrenotazioni();
+      loadPagamentiCache();
+    }, 500); // Piccolo delay per assicurarsi che i dati siano aggiornati nel database
   };
 
   const getNomePrenotazione = (prenotazione: Prenotazione) => {
