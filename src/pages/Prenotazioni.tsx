@@ -26,6 +26,10 @@ const Prenotazioni = () => {
     loadPrenotazioni();
   }, [selectedWeek]);
 
+  useEffect(() => {
+    loadPagamentiCache();
+  }, [prenotazioni]);
+
   const loadPrenotazioni = async () => {
     try {
       // Calcola inizio e fine settimana
@@ -65,6 +69,33 @@ const Prenotazioni = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPagamentiCache = async () => {
+    try {
+      const prenotazioniPagate = prenotazioni.filter(p => p.stato_pagamento === 'pagato');
+      if (prenotazioniPagate.length === 0) return;
+
+      const { data: pagamenti } = await supabase
+        .from('pagamenti')
+        .select('prenotazione_id, metodo_pagamento_tipo')
+        .in('prenotazione_id', prenotazioniPagate.map(p => p.id));
+
+      const cache: Record<string, string> = {};
+      if (pagamenti) {
+        pagamenti.forEach(pagamento => {
+          if (pagamento.metodo_pagamento_tipo === 'contanti') {
+            cache[pagamento.prenotazione_id] = 'bg-cash-payment/30 text-cash-payment border border-cash-payment/40';
+          } else {
+            cache[pagamento.prenotazione_id] = 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
+          }
+        });
+      }
+      
+      setPagamentiCache(cache);
+    } catch (error) {
+      console.error('Error loading pagamenti cache:', error);
     }
   };
 
@@ -137,13 +168,21 @@ const Prenotazioni = () => {
     );
   };
 
+  const [pagamentiCache, setPagamentiCache] = useState<Record<string, string>>({});
+
   const getStatoPagamentoColor = (prenotazione: Prenotazione) => {
-    if (prenotazione.stato_pagamento === 'pagato') {
-      // Controlla se ha pagamenti associati per determinare il tipo
-      return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
-    } else {
+    if (prenotazione.stato_pagamento === 'da_pagare') {
       return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
     }
+    
+    // Se è pagata, usa la cache dei pagamenti se disponibile
+    const cachedColor = pagamentiCache[prenotazione.id];
+    if (cachedColor) {
+      return cachedColor;
+    }
+    
+    // Default per prenotazioni pagate senza info sul tipo di pagamento
+    return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
   };
 
   const getStatoPagamentoColorWithPayment = async (prenotazione: Prenotazione) => {
