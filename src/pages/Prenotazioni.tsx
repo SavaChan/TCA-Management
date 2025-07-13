@@ -171,7 +171,7 @@ const Prenotazioni = () => {
     const dayStr = day.toISOString().split('T')[0];
     return prenotazioni.find(p => 
       p.data === dayStr && 
-      p.ora_inizio === time && 
+      p.ora_inizio.substring(0, 5) === time && 
       p.campo === campo
     );
   };
