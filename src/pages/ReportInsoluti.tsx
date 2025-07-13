@@ -29,11 +29,21 @@ interface PrenotazioneInsoluta {
   };
 }
 
+interface ClienteTotale {
+  nome: string;
+  cognome: string;
+  telefono: string | null;
+  tipo: 'socio' | 'ospite';
+  totale: number;
+  prenotazioni: PrenotazioneInsoluta[];
+}
+
 const ReportInsoluti = () => {
   const [insoluti, setInsoluti] = useState<PrenotazioneInsoluta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'cognome' | 'data' | 'tipo' | 'importo'>('cognome');
+  const [sortBy, setSortBy] = useState<'cognome' | 'data' | 'tipo' | 'importo' | 'cliente_totale'>('cognome');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'lista' | 'clienti'>('lista');
 
   useEffect(() => {
     loadInsoluti();
@@ -106,6 +116,63 @@ const ReportInsoluti = () => {
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
 
+  const getDateDetails = (date: string) => {
+    const d = new Date(date);
+    return {
+      giorno: d.getDate(),
+      mese: d.getMonth() + 1,
+      anno: d.getFullYear(),
+      settimana: getWeekNumber(date)
+    };
+  };
+
+  const getClientiTotali = (): ClienteTotale[] => {
+    const clientiMap = new Map<string, ClienteTotale>();
+    
+    insoluti.forEach(prenotazione => {
+      let key = '';
+      let cliente: ClienteTotale;
+      
+      if (prenotazione.soci) {
+        key = `socio_${prenotazione.soci.cognome}_${prenotazione.soci.nome}`;
+        if (!clientiMap.has(key)) {
+          clientiMap.set(key, {
+            nome: prenotazione.soci.nome,
+            cognome: prenotazione.soci.cognome,
+            telefono: prenotazione.soci.telefono,
+            tipo: 'socio',
+            totale: 0,
+            prenotazioni: []
+          });
+        }
+      } else if (prenotazione.ospiti) {
+        key = `ospite_${prenotazione.ospiti.cognome}_${prenotazione.ospiti.nome}`;
+        if (!clientiMap.has(key)) {
+          clientiMap.set(key, {
+            nome: prenotazione.ospiti.nome,
+            cognome: prenotazione.ospiti.cognome,
+            telefono: prenotazione.ospiti.telefono,
+            tipo: 'ospite',
+            totale: 0,
+            prenotazioni: []
+          });
+        }
+      }
+      
+      if (key && clientiMap.has(key)) {
+        cliente = clientiMap.get(key)!;
+        cliente.totale += prenotazione.importo;
+        cliente.prenotazioni.push(prenotazione);
+      }
+    });
+    
+    return Array.from(clientiMap.values()).sort((a, b) => {
+      const nomeA = `${a.cognome} ${a.nome}`;
+      const nomeB = `${b.cognome} ${b.nome}`;
+      return sortOrder === 'asc' ? nomeA.localeCompare(nomeB) : nomeB.localeCompare(nomeA);
+    });
+  };
+
   const sortedInsoluti = [...insoluti].sort((a, b) => {
     let valueA: any, valueB: any;
 
@@ -148,26 +215,40 @@ const ReportInsoluti = () => {
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium">Ordina per:</label>
-            <Select value={sortBy} onValueChange={(value: 'cognome' | 'data' | 'tipo' | 'importo') => setSortBy(value)}>
+            <label className="text-sm font-medium">Visualizza:</label>
+            <Select value={viewMode} onValueChange={(value: 'lista' | 'clienti') => setViewMode(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cognome">Cognome</SelectItem>
-                <SelectItem value="data">Data</SelectItem>
-                <SelectItem value="tipo">Tipo</SelectItem>
-                <SelectItem value="importo">Importo</SelectItem>
+                <SelectItem value="lista">Lista Cronologica</SelectItem>
+                <SelectItem value="clienti">Per Cliente</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </Button>
           </div>
+          {viewMode === 'lista' && (
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium">Ordina per:</label>
+              <Select value={sortBy} onValueChange={(value: 'cognome' | 'data' | 'tipo' | 'importo') => setSortBy(value)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cognome">Cognome</SelectItem>
+                  <SelectItem value="data">Data</SelectItem>
+                  <SelectItem value="tipo">Tipo</SelectItem>
+                  <SelectItem value="importo">Importo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -220,25 +301,29 @@ const ReportInsoluti = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="h-5 w-5" />
-            <span>Dettaglio Insoluti</span>
+            <span>{viewMode === 'lista' ? 'Lista Cronologica' : 'Riepilogo per Cliente'}</span>
           </CardTitle>
           <CardDescription>
-            Elenco completo delle prenotazioni in attesa di pagamento
+            {viewMode === 'lista' 
+              ? 'Elenco completo delle prenotazioni in attesa di pagamento ordinato cronologicamente'
+              : 'Totali per cliente con dettaglio delle prenotazioni'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {sortedInsoluti.length === 0 ? (
+          {insoluti.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nessuna prenotazione insoluta trovata
             </div>
-          ) : (
+          ) : viewMode === 'lista' ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Telefono</TableHead>
-                  <TableHead>Data</TableHead>
+                  <TableHead>Data Completa</TableHead>
                   <TableHead>Settimana</TableHead>
+                  <TableHead>Anno</TableHead>
                   <TableHead>Ora</TableHead>
                   <TableHead>Campo</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -246,63 +331,134 @@ const ReportInsoluti = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedInsoluti.map((prenotazione) => (
-                  <TableRow key={prenotazione.id}>
-                    <TableCell className="font-medium">
-                      {getNomeCliente(prenotazione)}
-                      {prenotazione.ospiti && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          Ospite
+                {sortedInsoluti.map((prenotazione) => {
+                  const dateDetails = getDateDetails(prenotazione.data);
+                  return (
+                    <TableRow key={prenotazione.id}>
+                      <TableCell className="font-medium">
+                        {getNomeCliente(prenotazione)}
+                        {prenotazione.ospiti && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            Ospite
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{getTelefono(prenotazione)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">
+                            {dateDetails.giorno}/{dateDetails.mese}/{dateDetails.anno}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          #{dateDetails.settimana}
                         </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{getTelefono(prenotazione)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">
-                          {new Date(prenotazione.data).toLocaleDateString('it-IT')}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        #{getWeekNumber(prenotazione.data)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">
-                          {prenotazione.ora_inizio} - {prenotazione.ora_fine}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        Campo {prenotazione.campo}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className="capitalize"
-                      >
-                        {prenotazione.tipo_prenotazione.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      €{prenotazione.importo.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {dateDetails.anno}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">
+                            {prenotazione.ora_inizio} - {prenotazione.ora_fine}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          Campo {prenotazione.campo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline"
+                          className="capitalize"
+                        >
+                          {prenotazione.tipo_prenotazione.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        €{prenotazione.importo.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
+          ) : (
+            <div className="space-y-4">
+              {getClientiTotali().map((cliente, index) => (
+                <Card key={index} className="border-l-4 border-l-primary">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          {cliente.cognome} {cliente.nome}
+                          <Badge variant="outline" className="ml-2">
+                            {cliente.tipo === 'socio' ? 'Socio' : 'Ospite'}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription className="flex items-center space-x-1">
+                          <Phone className="h-3 w-3" />
+                          <span>{cliente.telefono || 'Non disponibile'}</span>
+                        </CardDescription>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
+                          €{cliente.totale.toFixed(2)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {cliente.prenotazioni.length} prenotazion{cliente.prenotazioni.length === 1 ? 'e' : 'i'}
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {cliente.prenotazioni
+                        .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+                        .map((prenotazione) => {
+                          const dateDetails = getDateDetails(prenotazione.data);
+                          return (
+                            <div key={prenotazione.id} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                              <div className="flex items-center space-x-4 text-sm">
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  <span>{dateDetails.giorno}/{dateDetails.mese}/{dateDetails.anno}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  <span>{prenotazione.ora_inizio}-{prenotazione.ora_fine}</span>
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  Campo {prenotazione.campo}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  Sett. #{dateDetails.settimana}
+                                </Badge>
+                              </div>
+                              <div className="font-semibold text-primary">
+                                €{prenotazione.importo.toFixed(2)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
