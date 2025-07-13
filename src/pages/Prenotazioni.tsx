@@ -58,7 +58,13 @@ const Prenotazioni = () => {
         .order('data', { ascending: true })
         .order('ora_inizio', { ascending: true });
 
+      console.log('Query range:', {
+        startOfWeek: startOfWeek.toISOString().split('T')[0],
+        endOfWeek: endOfWeek.toISOString().split('T')[0]
+      });
+
       if (error) throw error;
+      console.log('Loaded prenotazioni:', data?.length, data);
       setPrenotazioni(data || []);
     } catch (error) {
       console.error('Error loading prenotazioni:', error);
