@@ -146,13 +146,10 @@ const Prenotazioni = () => {
     }
   };
 
-  const handlePrenotazioneSuccess = () => {
-    // Force refresh delle prenotazioni
-    setLoading(true);
-    setTimeout(() => {
-      loadPrenotazioni();
-      loadPagamentiCache();
-    }, 500); // Piccolo delay per assicurarsi che i dati siano aggiornati nel database
+  const handlePrenotazioneSuccess = async () => {
+    // Force refresh immediato delle prenotazioni
+    await loadPrenotazioni();
+    await loadPagamentiCache();
   };
 
   const getNomePrenotazione = (prenotazione: Prenotazione) => {
