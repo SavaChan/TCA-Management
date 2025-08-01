@@ -11,7 +11,8 @@ import {
   Euro,
   UserPlus,
   AlertTriangle,
-  Receipt
+  Receipt,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -108,6 +109,12 @@ const Layout = () => {
               <Link to="/iva-ospiti">
                 <Receipt className="h-4 w-4" />
                 <span>IVA Ospiti</span>
+              </Link>
+            </Button>
+            <Button asChild variant={location.pathname === '/maestri' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/maestri">
+                <GraduationCap className="h-4 w-4" />
+                <span>Maestri</span>
               </Link>
             </Button>
             <Button asChild variant={location.pathname === '/tariffe' ? 'default' : 'outline'} className="flex items-center space-x-2">
