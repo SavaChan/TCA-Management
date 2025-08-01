@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Euro } from 'lucide-react';
+import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import PrenotazioneDialog from '@/components/PrenotazioneDialog';
 import PagamentoDialog from '@/components/PagamentoDialog';
+import { useWeather } from '@/hooks/useWeather';
 
 const Prenotazioni = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
@@ -21,6 +23,9 @@ const Prenotazioni = () => {
     campo: number;
   } | null>(null);
   const [selectedPrenotazione, setSelectedPrenotazione] = useState<Prenotazione | null>(null);
+  
+  // Weather hook per Arenzano (44.4056, 8.9176)
+  const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate } = useWeather();
 
   useEffect(() => {
     loadPrenotazioni();
@@ -152,6 +157,62 @@ const Prenotazioni = () => {
     }
   };
 
+  const handleAnnullaPioggia = async (prenotazione: Prenotazione) => {
+    try {
+      const { error } = await supabase
+        .from('prenotazioni')
+        .update({
+          annullata_pioggia: true,
+          data_annullamento_pioggia: new Date().toISOString()
+        })
+        .eq('id', prenotazione.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Prenotazione annullata",
+        description: "La prenotazione è stata annullata per pioggia",
+      });
+
+      await loadPrenotazioni();
+    } catch (error) {
+      console.error('Error cancelling for rain:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile annullare la prenotazione",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRipristinaPrenotazione = async (prenotazione: Prenotazione) => {
+    try {
+      const { error } = await supabase
+        .from('prenotazioni')
+        .update({
+          annullata_pioggia: false,
+          data_annullamento_pioggia: null
+        })
+        .eq('id', prenotazione.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Prenotazione ripristinata",
+        description: "La prenotazione è stata ripristinata",
+      });
+
+      await loadPrenotazioni();
+    } catch (error) {
+      console.error('Error restoring booking:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile ripristinare la prenotazione",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handlePrenotazioneSuccess = async () => {
     // Force refresh immediato delle prenotazioni
     await loadPrenotazioni();
@@ -179,6 +240,11 @@ const Prenotazioni = () => {
   const [pagamentiCache, setPagamentiCache] = useState<Record<string, string>>({});
 
   const getStatoPagamentoColor = (prenotazione: Prenotazione) => {
+    // Se annullata per pioggia, usa uno stile specifico
+    if (prenotazione.annullata_pioggia) {
+      return 'bg-red-100/50 text-red-700 border border-red-300/50 opacity-60';
+    }
+    
     if (prenotazione.stato_pagamento === 'da_pagare') {
       return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
     }
@@ -291,14 +357,35 @@ const Prenotazioni = () => {
                 <thead>
                   <tr>
                     <th className="text-left p-2 font-medium">Orario</th>
-                    {weekDays.map((day, idx) => (
-                      <th key={idx} className="text-center p-2 font-medium min-w-24">
-                        <div>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {day.getDate()}/{day.getMonth() + 1}
-                        </div>
-                      </th>
-                    ))}
+                    {weekDays.map((day, idx) => {
+                      const dayStr = day.toISOString().split('T')[0];
+                      const weather = getWeatherForDate(dayStr);
+                      let WeatherIcon = LucideIcons.Sun;
+                      
+                      if (weather && !weatherLoading) {
+                        const iconData = getWeatherIcon(weather.weather_code);
+                        WeatherIcon = (LucideIcons as any)[iconData.icon] || LucideIcons.Sun;
+                      }
+
+                      return (
+                        <th key={idx} className="text-center p-2 font-medium min-w-24">
+                          <div className="flex items-center justify-center space-x-1">
+                            <span>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                            {!weatherLoading && weather && (
+                              <WeatherIcon size={16} className="text-blue-500" />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {day.getDate()}/{day.getMonth() + 1}
+                          </div>
+                          {!weatherLoading && weather && weather.precipitation_probability > 30 && (
+                            <div className="text-xs text-blue-600">
+                              {weather.precipitation_probability}%
+                            </div>
+                          )}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -309,25 +396,63 @@ const Prenotazioni = () => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 1);
                         return (
                            <td key={dayIdx} className="p-1">
-                             {prenotazione ? (
+                              {prenotazione ? (
+                                 <div className="relative group">
+                                   <div 
+                                     className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                     onClick={() => handleCellClick(day, time, 1)}
+                                   >
+                                     <div className="font-medium">
+                                       {getNomePrenotazione(prenotazione)}
+                                     </div>
+                                     <div>€{prenotazione.importo}</div>
+                                     {prenotazione.annullata_pioggia && (
+                                       <div className="absolute -top-1 -right-1">
+                                         <CloudRain size={12} className="text-blue-600" />
+                                       </div>
+                                     )}
+                                   </div>
+                                   
+                                   {/* Menu contestuale per annullamento pioggia */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                     {!prenotazione.annullata_pioggia ? (
+                                       <Button
+                                         size="sm"
+                                         variant="destructive"
+                                         className="h-6 w-6 p-0"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleAnnullaPioggia(prenotazione);
+                                         }}
+                                         title="Annulla per pioggia"
+                                       >
+                                         <CloudRain size={12} />
+                                       </Button>
+                                     ) : (
+                                       <Button
+                                         size="sm"
+                                         variant="outline"
+                                         className="h-6 w-6 p-0 bg-green-50"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleRipristinaPrenotazione(prenotazione);
+                                         }}
+                                         title="Ripristina prenotazione"
+                                       >
+                                         <AlertTriangle size={12} />
+                                       </Button>
+                                     )}
+                                   </div>
+                                 </div>
+                              ) : (
                                 <div 
-                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                  className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
                                   onClick={() => handleCellClick(day, time, 1)}
-                               >
-                                  <div className="font-medium">
-                                    {getNomePrenotazione(prenotazione)}
-                                  </div>
-                                 <div>€{prenotazione.importo}</div>
-                               </div>
-                             ) : (
-                               <div 
-                                 className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
-                                 onClick={() => handleCellClick(day, time, 1)}
-                               >
-                                 Libero
-                               </div>
-                             )}
-                           </td>
+                                >
+                                  Libero
+                                </div>
+                              )}
+                            </td>
                         );
                       })}
                     </tr>
@@ -355,14 +480,35 @@ const Prenotazioni = () => {
                 <thead>
                   <tr>
                     <th className="text-left p-2 font-medium">Orario</th>
-                    {weekDays.map((day, idx) => (
-                      <th key={idx} className="text-center p-2 font-medium min-w-24">
-                        <div>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {day.getDate()}/{day.getMonth() + 1}
-                        </div>
-                      </th>
-                    ))}
+                    {weekDays.map((day, idx) => {
+                      const dayStr = day.toISOString().split('T')[0];
+                      const weather = getWeatherForDate(dayStr);
+                      let WeatherIcon = LucideIcons.Sun;
+                      
+                      if (weather && !weatherLoading) {
+                        const iconData = getWeatherIcon(weather.weather_code);
+                        WeatherIcon = (LucideIcons as any)[iconData.icon] || LucideIcons.Sun;
+                      }
+
+                      return (
+                        <th key={idx} className="text-center p-2 font-medium min-w-24">
+                          <div className="flex items-center justify-center space-x-1">
+                            <span>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                            {!weatherLoading && weather && (
+                              <WeatherIcon size={16} className="text-blue-500" />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {day.getDate()}/{day.getMonth() + 1}
+                          </div>
+                          {!weatherLoading && weather && weather.precipitation_probability > 30 && (
+                            <div className="text-xs text-blue-600">
+                              {weather.precipitation_probability}%
+                            </div>
+                          )}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -372,26 +518,64 @@ const Prenotazioni = () => {
                       {weekDays.map((day, dayIdx) => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 2);
                         return (
-                           <td key={dayIdx} className="p-1">
-                             {prenotazione ? (
+                            <td key={dayIdx} className="p-1">
+                              {prenotazione ? (
+                                 <div className="relative group">
+                                   <div 
+                                     className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                     onClick={() => handleCellClick(day, time, 2)}
+                                   >
+                                     <div className="font-medium">
+                                       {getNomePrenotazione(prenotazione)}
+                                     </div>
+                                     <div>€{prenotazione.importo}</div>
+                                     {prenotazione.annullata_pioggia && (
+                                       <div className="absolute -top-1 -right-1">
+                                         <CloudRain size={12} className="text-blue-600" />
+                                       </div>
+                                     )}
+                                   </div>
+                                   
+                                   {/* Menu contestuale per annullamento pioggia */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                     {!prenotazione.annullata_pioggia ? (
+                                       <Button
+                                         size="sm"
+                                         variant="destructive"
+                                         className="h-6 w-6 p-0"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleAnnullaPioggia(prenotazione);
+                                         }}
+                                         title="Annulla per pioggia"
+                                       >
+                                         <CloudRain size={12} />
+                                       </Button>
+                                     ) : (
+                                       <Button
+                                         size="sm"
+                                         variant="outline"
+                                         className="h-6 w-6 p-0 bg-green-50"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleRipristinaPrenotazione(prenotazione);
+                                         }}
+                                         title="Ripristina prenotazione"
+                                       >
+                                         <AlertTriangle size={12} />
+                                       </Button>
+                                     )}
+                                   </div>
+                                 </div>
+                              ) : (
                                 <div 
-                                  className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                  className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
                                   onClick={() => handleCellClick(day, time, 2)}
-                               >
-                                  <div className="font-medium">
-                                    {getNomePrenotazione(prenotazione)}
-                                  </div>
-                                 <div>€{prenotazione.importo}</div>
-                               </div>
-                             ) : (
-                               <div 
-                                 className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
-                                 onClick={() => handleCellClick(day, time, 2)}
-                               >
-                                 Libero
-                               </div>
-                             )}
-                           </td>
+                                >
+                                  Libero
+                                </div>
+                              )}
+                            </td>
                         );
                       })}
                     </tr>
@@ -421,6 +605,10 @@ const Prenotazioni = () => {
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-red-100 rounded"></div>
               <span className="text-sm">Da Pagare</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-100/50 rounded border border-red-300"></div>
+              <span className="text-sm">Annullata per pioggia</span>
             </div>
           </div>
         </CardContent>

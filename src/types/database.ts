@@ -67,6 +67,8 @@ export interface Prenotazione {
   importo: number;
   stato_pagamento: StatoPagamento;
   note?: string;
+  annullata_pioggia?: boolean;
+  data_annullamento_pioggia?: string;
   created_at: string;
   updated_at: string;
   soci?: Partial<Socio>;
