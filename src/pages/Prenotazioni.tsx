@@ -23,6 +23,7 @@ const Prenotazioni = () => {
     campo: number;
   } | null>(null);
   const [selectedPrenotazione, setSelectedPrenotazione] = useState<Prenotazione | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   
   // Weather hook per Arenzano (44.4056, 8.9176)
   const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate } = useWeather();
@@ -34,6 +35,14 @@ const Prenotazioni = () => {
   useEffect(() => {
     loadPagamentiCache();
   }, [prenotazioni]);
+
+  useEffect(() => {
+    // Carica logo salvato nel localStorage
+    const savedLogo = localStorage.getItem('tennis-club-logo');
+    if (savedLogo) {
+      setLogoUrl(savedLogo);
+    }
+  }, []);
 
   const loadPrenotazioni = async () => {
     try {
@@ -294,6 +303,23 @@ const Prenotazioni = () => {
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setLogoUrl(result);
+        localStorage.setItem('tennis-club-logo', result);
+        toast({
+          title: "Logo caricato",
+          description: "Il logo è stato caricato con successo",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const weekDays = getWeekDays();
   const timeSlots = getTimeSlots();
 
@@ -304,9 +330,24 @@ const Prenotazioni = () => {
       {/* Header con nome club e logo */}
       <div className="flex justify-between items-center border-b pb-4">
         <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20">
-            <span className="text-xs text-muted-foreground">LOGO</span>
-          </div>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            id="logo-upload"
+            onChange={handleLogoUpload}
+          />
+          <label
+            htmlFor="logo-upload"
+            className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+            title="Clicca per caricare il logo"
+          >
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+            ) : (
+              <span className="text-xs text-muted-foreground">LOGO</span>
+            )}
+          </label>
           <div>
             <h1 className="text-3xl font-bold">Tennis Club Arenzano</h1>
             <p className="text-muted-foreground">Sistema gestione prenotazioni campi</p>
@@ -339,7 +380,7 @@ const Prenotazioni = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Campo 1 */}
         <Card>
           <CardHeader>
