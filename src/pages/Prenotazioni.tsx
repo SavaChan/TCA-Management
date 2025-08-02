@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import PrenotazioneDialog from '@/components/PrenotazioneDialog';
 import PagamentoDialog from '@/components/PagamentoDialog';
 import { useWeather } from '@/hooks/useWeather';
+import RecurringBookingDialog from '@/components/RecurringBookingDialog';
 
 const Prenotazioni = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
@@ -24,6 +25,18 @@ const Prenotazioni = () => {
   } | null>(null);
   const [selectedPrenotazione, setSelectedPrenotazione] = useState<Prenotazione | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<{
+    campo: number;
+    data: string;
+    ora: string;
+  }[]>([]);
+  const [selectionStart, setSelectionStart] = useState<{
+    campo: number;
+    data: string;
+    ora: string;
+  } | null>(null);
+  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   
   // Weather hook per Arenzano (44.4056, 8.9176)
   const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate } = useWeather();
@@ -141,12 +154,11 @@ const Prenotazioni = () => {
     return slots;
   };
 
-  const handleCellClick = (day: Date, time: string, campo: number) => {
+  const handleMouseDown = (day: Date, time: string, campo: number, event: React.MouseEvent) => {
     const prenotazione = getPrenotazioneForSlot(day, time, campo);
     
     if (prenotazione) {
       if (prenotazione.stato_pagamento === 'da_pagare') {
-        // Apri dialog di pagamento per prenotazioni non pagate
         setSelectedPrenotazione(prenotazione);
         setPagamentoDialogOpen(true);
       } else {
@@ -155,8 +167,17 @@ const Prenotazioni = () => {
           description: "Questa prenotazione è già stata saldata",
         });
       }
+      return;
+    }
+
+    // Inizia selezione multipla solo se la cella è libera
+    if (event.shiftKey || event.ctrlKey) {
+      const slotKey = { campo, data: day.toISOString().split('T')[0], ora: time };
+      setIsSelecting(true);
+      setSelectionStart(slotKey);
+      setSelectedSlots([slotKey]);
     } else {
-      // Nuova prenotazione
+      // Clic normale per singola prenotazione
       setSelectedSlot({
         data: day.toISOString().split('T')[0],
         oraInizio: time,
@@ -164,6 +185,58 @@ const Prenotazioni = () => {
       });
       setDialogOpen(true);
     }
+  };
+
+  const handleMouseEnter = (day: Date, time: string, campo: number) => {
+    if (!isSelecting || !selectionStart) return;
+    
+    const prenotazione = getPrenotazioneForSlot(day, time, campo);
+    if (prenotazione) return; // Non selezionare celle occupate
+    
+    if (campo !== selectionStart.campo || day.toISOString().split('T')[0] !== selectionStart.data) return;
+    
+    // Seleziona tutti gli slot tra l'inizio e la posizione corrente
+    const startHour = parseInt(selectionStart.ora.split(':')[0]);
+    const endHour = parseInt(time.split(':')[0]);
+    const minHour = Math.min(startHour, endHour);
+    const maxHour = Math.max(startHour, endHour);
+    
+    const newSelectedSlots = [];
+    for (let hour = minHour; hour <= maxHour; hour++) {
+      const hourStr = `${hour.toString().padStart(2, '0')}:00`;
+      const slotPrenotazione = getPrenotazioneForSlot(day, hourStr, campo);
+      if (!slotPrenotazione) {
+        newSelectedSlots.push({
+          campo,
+          data: day.toISOString().split('T')[0],
+          ora: hourStr
+        });
+      }
+    }
+    setSelectedSlots(newSelectedSlots);
+  };
+
+  const handleMouseUp = () => {
+    if (isSelecting && selectedSlots.length > 1) {
+      // Apri dialog per prenotazione multipla
+      setSelectedSlot({
+        data: selectedSlots[0].data,
+        oraInizio: selectedSlots[0].ora,
+        campo: selectedSlots[0].campo
+      });
+      setDialogOpen(true);
+    }
+    setIsSelecting(false);
+    setSelectionStart(null);
+    setSelectedSlots([]);
+  };
+
+  const isSlotSelected = (day: Date, time: string, campo: number) => {
+    return selectedSlots.some(slot => 
+      slot.campo === campo && 
+      slot.data === day.toISOString().split('T')[0] && 
+      slot.ora === time
+    );
   };
 
   const handleAnnullaPioggia = async (prenotazione: Prenotazione) => {
@@ -377,6 +450,13 @@ const Prenotazioni = () => {
           }}>
             Settimana Successiva →
           </Button>
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowRecurringDialog(true)}
+            className="bg-purple-100 text-purple-700 hover:bg-purple-200"
+          >
+            📅 Prenotazioni Ricorrenti
+          </Button>
         </div>
       </div>
 
@@ -437,12 +517,12 @@ const Prenotazioni = () => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 1);
                         return (
                            <td key={dayIdx} className="p-1">
-                              {prenotazione ? (
-                                 <div className="relative group">
-                                   <div 
-                                     className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
-                                     onClick={() => handleCellClick(day, time, 1)}
-                                   >
+                               {prenotazione ? (
+                                  <div className="relative group">
+                                    <div 
+                                      className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                      onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
+                                    >
                                      <div className="font-medium">
                                        {getNomePrenotazione(prenotazione)}
                                      </div>
@@ -485,14 +565,20 @@ const Prenotazioni = () => {
                                      )}
                                    </div>
                                  </div>
-                              ) : (
-                                <div 
-                                  className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
-                                  onClick={() => handleCellClick(day, time, 1)}
-                                >
-                                  Libero
-                                </div>
-                              )}
+                               ) : (
+                                 <div 
+                                   className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
+                                     isSlotSelected(day, time, 1) 
+                                       ? 'bg-blue-200 text-blue-800 border-2 border-blue-400' 
+                                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                                   }`}
+                                   onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
+                                   onMouseEnter={() => handleMouseEnter(day, time, 1)}
+                                   onMouseUp={handleMouseUp}
+                                 >
+                                   Libero
+                                 </div>
+                               )}
                             </td>
                         );
                       })}
@@ -559,13 +645,13 @@ const Prenotazioni = () => {
                       {weekDays.map((day, dayIdx) => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 2);
                         return (
-                            <td key={dayIdx} className="p-1">
-                              {prenotazione ? (
-                                 <div className="relative group">
-                                   <div 
-                                     className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
-                                     onClick={() => handleCellClick(day, time, 2)}
-                                   >
+                             <td key={dayIdx} className="p-1">
+                               {prenotazione ? (
+                                  <div className="relative group">
+                                    <div 
+                                      className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
+                                      onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
+                                    >
                                      <div className="font-medium">
                                        {getNomePrenotazione(prenotazione)}
                                      </div>
@@ -608,14 +694,20 @@ const Prenotazioni = () => {
                                      )}
                                    </div>
                                  </div>
-                              ) : (
-                                <div 
-                                  className="p-1 rounded text-xs text-center bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100"
-                                  onClick={() => handleCellClick(day, time, 2)}
-                                >
-                                  Libero
-                                </div>
-                              )}
+                               ) : (
+                                 <div 
+                                   className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
+                                     isSlotSelected(day, time, 2) 
+                                       ? 'bg-blue-200 text-blue-800 border-2 border-blue-400' 
+                                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                                   }`}
+                                   onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
+                                   onMouseEnter={() => handleMouseEnter(day, time, 2)}
+                                   onMouseUp={handleMouseUp}
+                                 >
+                                   Libero
+                                 </div>
+                               )}
                             </td>
                         );
                       })}
@@ -651,6 +743,14 @@ const Prenotazioni = () => {
               <div className="w-4 h-4 bg-red-100/50 rounded border border-red-300"></div>
               <span className="text-sm">Annullata per pioggia</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-blue-200 rounded border-2 border-blue-400"></div>
+              <span className="text-sm">Selezione multipla (Shift+Click e trascina)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-purple-100 rounded border border-purple-300"></div>
+              <span className="text-sm">Prenotazioni ricorrenti</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -683,6 +783,13 @@ const Prenotazioni = () => {
           onSuccess={handlePrenotazioneSuccess}
         />
       )}
+
+      {/* Dialog per prenotazioni ricorrenti */}
+      <RecurringBookingDialog
+        open={showRecurringDialog}
+        onOpenChange={setShowRecurringDialog}
+        onSuccess={handlePrenotazioneSuccess}
+      />
     </div>
   );
 };
