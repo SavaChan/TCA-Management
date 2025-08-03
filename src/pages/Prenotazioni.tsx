@@ -229,6 +229,11 @@ const Prenotazioni = () => {
     setIsSelecting(false);
     setSelectionStart(null);
     setSelectedSlots([]);
+    
+    // Forza re-render per rimuovere evidenziazioni residue
+    setTimeout(() => {
+      setSelectedSlots([]);
+    }, 0);
   };
 
   const isSlotSelected = (day: Date, time: string, campo: number) => {
@@ -438,12 +443,6 @@ const Prenotazioni = () => {
             Oggi
           </Button>
           <Button variant="outline" onClick={() => {
-            const july7 = new Date('2025-07-07');
-            setSelectedWeek(july7);
-          }}>
-            7 Luglio
-          </Button>
-          <Button variant="outline" onClick={() => {
             const nextWeek = new Date(selectedWeek);
             nextWeek.setDate(nextWeek.getDate() + 7);
             setSelectedWeek(nextWeek);
@@ -451,9 +450,8 @@ const Prenotazioni = () => {
             Settimana Successiva →
           </Button>
           <Button 
-            variant="secondary" 
+            variant="outline" 
             onClick={() => setShowRecurringDialog(true)}
-            className="bg-purple-100 text-purple-700 hover:bg-purple-200"
           >
             📅 Prenotazioni Ricorrenti
           </Button>
