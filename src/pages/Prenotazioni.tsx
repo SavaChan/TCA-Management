@@ -218,22 +218,25 @@ const Prenotazioni = () => {
 
   const handleMouseUp = () => {
     if (isSelecting && selectedSlots.length > 1) {
-      // Apri dialog per prenotazione multipla
+      // Apri dialog per prenotazione multipla con tutti gli slot selezionati
       setSelectedSlot({
         data: selectedSlots[0].data,
         oraInizio: selectedSlots[0].ora,
-        campo: selectedSlots[0].campo
-      });
+        campo: selectedSlots[0].campo,
+        multipleSlots: selectedSlots // Passa tutti gli slot selezionati
+      } as any);
       setDialogOpen(true);
     }
-    setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectedSlots([]);
     
-    // Forza re-render per rimuovere evidenziazioni residue
-    setTimeout(() => {
+    // Clear selection state immediately and properly
+    const clearSelection = () => {
+      setIsSelecting(false);
+      setSelectionStart(null);
       setSelectedSlots([]);
-    }, 0);
+    };
+    
+    // Use requestAnimationFrame for proper cleanup
+    requestAnimationFrame(clearSelection);
   };
 
   const isSlotSelected = (day: Date, time: string, campo: number) => {
@@ -767,6 +770,7 @@ const Prenotazioni = () => {
           oraInizio={selectedSlot.oraInizio}
           campo={selectedSlot.campo}
           onSuccess={handlePrenotazioneSuccess}
+          multipleSlots={(selectedSlot as any).multipleSlots}
         />
       )}
 

@@ -20,6 +20,7 @@ interface PrenotazioneDialogProps {
   oraInizio: string;
   campo: number;
   onSuccess: () => void;
+  multipleSlots?: { campo: number; data: string; ora: string; }[];
 }
 
 const PrenotazioneDialog = ({ 
@@ -28,7 +29,8 @@ const PrenotazioneDialog = ({
   data, 
   oraInizio, 
   campo, 
-  onSuccess 
+  onSuccess,
+  multipleSlots 
 }: PrenotazioneDialogProps) => {
   const [tipoCliente, setTipoCliente] = useState<'socio' | 'ospite'>('socio');
   const [soci, setSoci] = useState<Socio[]>([]);
@@ -167,40 +169,66 @@ const PrenotazioneDialog = ({
         socioId = selectedSocio!.id;
       }
 
-      // Calcola ora fine (1 ora dopo)
-      const oraFine = `${(parseInt(oraInizio.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+      // Se è selezione multipla, crea una prenotazione per ogni slot
+      if (multipleSlots && multipleSlots.length > 1) {
+        const prenotazioni = multipleSlots.map((slot, index) => {
+          const oraFine = `${(parseInt(slot.ora.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+          return {
+            socio_id: socioId,
+            ospite_id: ospiteId,
+            campo: slot.campo,
+            data: slot.data,
+            ora_inizio: slot.ora,
+            ora_fine: oraFine,
+            tipo_prenotazione: tipoPrenotazione,
+            tipo_campo: 'scoperto' as const,
+            diurno: parseInt(slot.ora.split(':')[0]) >= 8 && parseInt(slot.ora.split(':')[0]) < 20,
+            importo,
+            stato_pagamento: 'da_pagare' as const,
+          };
+        });
 
-      // Crea prenotazione
-      const { error: prenotazioneError } = await supabase
-        .from('prenotazioni')
-        .insert([{
-          socio_id: socioId,
-          ospite_id: ospiteId,
-          campo,
-          data,
-          ora_inizio: oraInizio,
-          ora_fine: oraFine,
-          tipo_prenotazione: tipoPrenotazione,
-          tipo_campo: 'scoperto',
-          diurno: parseInt(oraInizio.split(':')[0]) >= 8 && parseInt(oraInizio.split(':')[0]) < 20,
-          importo,
-          stato_pagamento: 'da_pagare',
-        }]);
+        const { error: prenotazioneError } = await supabase
+          .from('prenotazioni')
+          .insert(prenotazioni);
 
-      if (prenotazioneError) {
-        // Se è un errore di vincolo univoco
-        if (prenotazioneError.code === '23505') {
-          toast({
-            title: "Errore",
-            description: "Quest'ora è già prenotata",
-            variant: "destructive",
-          });
-        } else {
-          throw prenotazioneError;
+        if (prenotazioneError) throw prenotazioneError;
+      } else {
+        // Prenotazione singola
+        const oraFine = `${(parseInt(oraInizio.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+
+        const { error: prenotazioneError } = await supabase
+          .from('prenotazioni')
+          .insert([{
+            socio_id: socioId,
+            ospite_id: ospiteId,
+            campo,
+            data,
+            ora_inizio: oraInizio,
+            ora_fine: oraFine,
+            tipo_prenotazione: tipoPrenotazione,
+            tipo_campo: 'scoperto' as const,
+            diurno: parseInt(oraInizio.split(':')[0]) >= 8 && parseInt(oraInizio.split(':')[0]) < 20,
+            importo,
+            stato_pagamento: 'da_pagare' as const,
+          }]);
+
+        if (prenotazioneError) {
+          // Se è un errore di vincolo univoco
+          if (prenotazioneError.code === '23505') {
+            toast({
+              title: "Errore",
+              description: "Quest'ora è già prenotata",
+              variant: "destructive",
+            });
+          } else {
+            throw prenotazioneError;
+          }
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
       }
+
 
       toast({
         title: "Successo",
@@ -241,7 +269,10 @@ const PrenotazioneDialog = ({
             Nuova Prenotazione - Campo {campo}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {new Date(data).toLocaleDateString('it-IT')} alle {oraInizio}
+            {multipleSlots && multipleSlots.length > 1 
+              ? `${new Date(data).toLocaleDateString('it-IT')} dalle ${multipleSlots[0].ora} alle ${(parseInt(multipleSlots[multipleSlots.length - 1].ora.split(':')[0]) + 1).toString().padStart(2, '0')}:00 (${multipleSlots.length} ore)`
+              : `${new Date(data).toLocaleDateString('it-IT')} alle ${oraInizio}`
+            }
           </p>
         </DialogHeader>
 
