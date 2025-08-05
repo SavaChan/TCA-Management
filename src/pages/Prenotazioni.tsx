@@ -489,15 +489,17 @@ const Prenotazioni = () => {
                         WeatherIcon = (LucideIcons as any)[iconData.icon] || LucideIcons.Sun;
                       }
 
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      
                       return (
-                        <th key={idx} className="text-center p-2 font-medium min-w-24">
+                        <th key={idx} className={`text-center p-2 font-medium min-w-24 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
                           <div className="flex items-center justify-center space-x-1">
-                            <span>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                            <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
                             {!weatherLoading && weather && (
                               <WeatherIcon size={16} className="text-blue-500" />
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
                             {day.getDate()}/{day.getMonth() + 1}
                           </div>
                           {!weatherLoading && weather && weather.precipitation_probability > 30 && (
@@ -618,15 +620,17 @@ const Prenotazioni = () => {
                         WeatherIcon = (LucideIcons as any)[iconData.icon] || LucideIcons.Sun;
                       }
 
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      
                       return (
-                        <th key={idx} className="text-center p-2 font-medium min-w-24">
+                        <th key={idx} className={`text-center p-2 font-medium min-w-24 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
                           <div className="flex items-center justify-center space-x-1">
-                            <span>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                            <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
                             {!weatherLoading && weather && (
                               <WeatherIcon size={16} className="text-blue-500" />
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
                             {day.getDate()}/{day.getMonth() + 1}
                           </div>
                           {!weatherLoading && weather && weather.precipitation_probability > 30 && (
