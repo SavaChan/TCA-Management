@@ -114,7 +114,7 @@ const ReportInsoluti = () => {
       if (!map.has(key))
         map.set(key, { ...nome, tipo, totale: 0, prenotazioni: [] });
       const c = map.get(key)!;
-      c.totale += p.importo;
+      c.totale += Number(p.importo);
       c.prenotazioni.push(p);
     });
     return Array.from(map.values()).sort((a,b)=>`${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`));
@@ -159,31 +159,42 @@ const ReportInsoluti = () => {
   /* ---------- Gestione Pagamento ---------- */
   const openPayModal = (lst: PrenotazioneInsoluta[]) => {
     setSelectedPrenotazioni(lst);
-    const tot = lst.reduce((s,p)=>s+p.importo,0);
+    const tot = lst.reduce((s,p)=>s+Number(p.importo),0);
     setPaymentAmount(tot.toFixed(2));
     setPayModalOpen(true);
   };
   const handlePay = async () => {
     const ids = selectedPrenotazioni.map((p)=>p.id);
-    const amount = paymentAmount===''? null : parseFloat(paymentAmount);
-    // Aggiungiamo solo un record in pagamenti; se serve più granularità modifica da te.
-    await supabase.from('pagamenti').insert(
-      ids.map(id=>({
-        prenotazione_id: id,
-        importo: amount,
-        data_pagamento: new Date().toISOString(),
-        metodo_pagamento: 'altro',
-        confermato: true
-      }))
-    );
-    await supabase.from('prenotazioni').update({ stato_pagamento: 'pagato'}).in('id', ids);
-    toast({title:'Pagamento registrato'});
-    setPayModalOpen(false);
-    loadInsoluti();
+    const amount = paymentAmount===''? selectedPrenotazioni.reduce((s,p)=>s+Number(p.importo),0) : parseFloat(paymentAmount);
+    
+    try {
+      // Inserisci un pagamento per ogni prenotazione con il relativo importo
+      const { error: paymentError } = await supabase.from('pagamenti').insert(
+        selectedPrenotazioni.map(p=>({
+          prenotazione_id: p.id,
+          importo: selectedPrenotazioni.length === 1 ? amount : Number(p.importo),
+          data_pagamento: new Date().toISOString(),
+          metodo_pagamento: 'Contanti',
+          metodo_pagamento_tipo: 'contanti'
+        }))
+      );
+      
+      if (paymentError) throw paymentError;
+      
+      const { error: updateError } = await supabase.from('prenotazioni').update({ stato_pagamento: 'pagato'}).in('id', ids);
+      if (updateError) throw updateError;
+      
+      toast({title:'Pagamento registrato con successo'});
+      setPayModalOpen(false);
+      loadInsoluti();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast({title:'Errore', description:'Impossibile registrare il pagamento', variant: 'destructive'});
+    }
   };
 
   /* ---------- Render ---------- */
-  const total = useMemo(()=>insoluti.reduce((s,p)=>s+p.importo,0),[insoluti]);
+  const total = useMemo(()=>insoluti.reduce((s,p)=>s+Number(p.importo),0),[insoluti]);
 
   if (loading) return <div className="p-6">Caricamento report degli insoluti…</div>;
 
@@ -279,7 +290,7 @@ const ReportInsoluti = () => {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-800 rounded p-6 w-96 shadow-xl">
             <h3 className="text-lg font-semibold mb-2">Registra pagamento</h3>
-            <p className="text-sm mb-4">Stai saldando {selectedPrenotazioni.length} ore – totale debito €{selectedPrenotazioni.reduce((s,p)=>s+p.importo,0).toFixed(2)}</p>
+            <p className="text-sm mb-4">Stai saldando {selectedPrenotazioni.length} ore – totale debito €{selectedPrenotazioni.reduce((s,p)=>s+Number(p.importo),0).toFixed(2)}</p>
             <Label>Importo pagato (lascia vuoto per importo pieno)</Label>
             <Input type="number" step={0.01} value={paymentAmount} onChange={e=>setPaymentAmount(e.target.value)} />
             <div className="flex justify-end gap-2 mt-4">

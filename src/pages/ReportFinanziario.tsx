@@ -79,13 +79,13 @@ const ReportFinanziario = () => {
   const pagamentiSoci = pagamenti.filter(p => p.prenotazioni?.soci);
   const pagamentiOspiti = pagamenti.filter(p => p.prenotazioni?.ospiti);
 
-  const totaleContanti = contanti.reduce((sum, p) => sum + p.importo, 0);
-  const totalePOS = pos.reduce((sum, p) => sum + p.importo, 0);
+  const totaleContanti = contanti.reduce((sum, p) => sum + Number(p.importo), 0);
+  const totalePOS = pos.reduce((sum, p) => sum + Number(p.importo), 0);
   const totaleBilancio = totaleContanti + totalePOS;
 
   // Calcoli separati per soci e ospiti
-  const incassoSoci = pagamentiSoci.reduce((sum, p) => sum + p.importo, 0);
-  const incassoOspiti = pagamentiOspiti.reduce((sum, p) => sum + p.importo, 0);
+  const incassoSoci = pagamentiSoci.reduce((sum, p) => sum + Number(p.importo), 0);
+  const incassoOspiti = pagamentiOspiti.reduce((sum, p) => sum + Number(p.importo), 0);
   const incassoOspitiNettoIVA = incassoOspiti / 1.11; // Scorporo IVA 11%
   const ivaOspiti = incassoOspiti - incassoOspitiNettoIVA;
 

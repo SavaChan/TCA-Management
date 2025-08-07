@@ -150,7 +150,7 @@ const ReportOspitiIva = () => {
   });
 
   const totaliGenerali = prenotazioniPagate.reduce((acc, prenotazione) => {
-    const calcoli = calcolaIva(prenotazione.importo);
+    const calcoli = calcolaIva(Number(prenotazione.importo));
     return {
       totale: acc.totale + calcoli.totale,
       imponibile: acc.imponibile + calcoli.imponibile,
@@ -281,7 +281,7 @@ const ReportOspitiIva = () => {
               <TableBody>
                 {sortedPrenotazioni.map((prenotazione) => {
                   const dateDetails = getDateDetails(prenotazione.data);
-                  const calcoli = calcolaIva(prenotazione.importo);
+                  const calcoli = calcolaIva(Number(prenotazione.importo));
                   const ultimoPagamento = prenotazione.pagamenti[prenotazione.pagamenti.length - 1];
                   
                   return (
