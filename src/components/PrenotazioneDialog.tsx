@@ -39,10 +39,17 @@ const PrenotazioneDialog = ({
   const [openSocioCombobox, setOpenSocioCombobox] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // Gestione ospiti esistenti
+  const [ospiti, setOspiti] = useState<Ospite[]>([]);
+  const [selectedOspite, setSelectedOspite] = useState<Ospite | null>(null);
+  const [ospiteSearch, setOspiteSearch] = useState('');
+  const [openOspiteCombobox, setOpenOspiteCombobox] = useState(false);
+  
   // Dati ospite
   const [ospiteNome, setOspiteNome] = useState('');
   const [ospiteCognome, setOspiteCognome] = useState('');
   const [ospiteTelefono, setOspiteTelefono] = useState('');
+  const [ospiteEmail, setOspiteEmail] = useState('');
   
   // Dati prenotazione
   const [tipoPrenotazione, setTipoPrenotazione] = useState<TipoPrenotazione>('singolare');
@@ -51,6 +58,7 @@ const PrenotazioneDialog = ({
   useEffect(() => {
     if (open) {
       loadSoci();
+      loadOspiti();
       calculateTariff();
     }
   }, [open, tipoPrenotazione]);
@@ -67,6 +75,20 @@ const PrenotazioneDialog = ({
       setSoci(sociData || []);
     } catch (error) {
       console.error('Error loading soci:', error);
+    }
+  };
+
+  const loadOspiti = async () => {
+    try {
+      const { data: ospitiData, error } = await supabase
+        .from('ospiti')
+        .select('*')
+        .order('cognome', { ascending: true });
+
+      if (error) throw error;
+      setOspiti(ospitiData || []);
+    } catch (error) {
+      console.error('Error loading ospiti:', error);
     }
   };
 
@@ -101,6 +123,20 @@ const PrenotazioneDialog = ({
   const filteredSoci = soci.filter(socio =>
     `${socio.nome} ${socio.cognome}`.toLowerCase().includes(socioSearch.toLowerCase())
   );
+
+  const filteredOspiti = ospiti.filter(ospite =>
+    `${ospite.nome} ${ospite.cognome}`.toLowerCase().includes(ospiteSearch.toLowerCase())
+  );
+
+  // Effetto per compilare automaticamente i campi quando si seleziona un ospite esistente
+  useEffect(() => {
+    if (selectedOspite) {
+      setOspiteNome(selectedOspite.nome);
+      setOspiteCognome(selectedOspite.cognome);
+      setOspiteTelefono(selectedOspite.telefono || '');
+      setOspiteEmail(selectedOspite.email || '');
+    }
+  }, [selectedOspite]);
 
   const handleSubmit = async () => {
     if (tipoCliente === 'socio' && !selectedSocio) {
@@ -152,19 +188,41 @@ const PrenotazioneDialog = ({
       let ospiteId = null;
 
       if (tipoCliente === 'ospite') {
-        // Crea ospite
-        const { data: ospiteData, error: ospiteError } = await supabase
-          .from('ospiti')
-          .insert([{
-            nome: ospiteNome,
-            cognome: ospiteCognome,
-            telefono: ospiteTelefono || null,
-          }])
-          .select()
-          .single();
+        if (selectedOspite) {
+          // Usa ospite esistente
+          ospiteId = selectedOspite.id;
+          
+          // Aggiorna i dati dell'ospite se sono stati modificati
+          if (ospiteNome !== selectedOspite.nome || 
+              ospiteCognome !== selectedOspite.cognome || 
+              ospiteTelefono !== (selectedOspite.telefono || '') ||
+              ospiteEmail !== (selectedOspite.email || '')) {
+            await supabase
+              .from('ospiti')
+              .update({
+                nome: ospiteNome,
+                cognome: ospiteCognome,
+                telefono: ospiteTelefono || null,
+                email: ospiteEmail || null,
+              })
+              .eq('id', selectedOspite.id);
+          }
+        } else {
+          // Crea nuovo ospite
+          const { data: ospiteData, error: ospiteError } = await supabase
+            .from('ospiti')
+            .insert([{
+              nome: ospiteNome,
+              cognome: ospiteCognome,
+              telefono: ospiteTelefono || null,
+              email: ospiteEmail || null,
+            }])
+            .select()
+            .single();
 
-        if (ospiteError) throw ospiteError;
-        ospiteId = ospiteData.id;
+          if (ospiteError) throw ospiteError;
+          ospiteId = ospiteData.id;
+        }
       } else {
         socioId = selectedSocio!.id;
       }
@@ -254,9 +312,12 @@ const PrenotazioneDialog = ({
     setTipoCliente('socio');
     setSelectedSocio(null);
     setSocioSearch('');
+    setSelectedOspite(null);
+    setOspiteSearch('');
     setOspiteNome('');
     setOspiteCognome('');
     setOspiteTelefono('');
+    setOspiteEmail('');
     setTipoPrenotazione('singolare');
     setImporto(0);
   };
@@ -353,6 +414,82 @@ const PrenotazioneDialog = ({
           {/* Dati Ospite */}
           {tipoCliente === 'ospite' && (
             <div className="space-y-3">
+              {/* Selezione Ospite Esistente */}
+              <div className="space-y-2">
+                <Label>Ospite Esistente (opzionale)</Label>
+                <Popover open={openOspiteCombobox} onOpenChange={setOpenOspiteCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openOspiteCombobox}
+                      className="w-full justify-between"
+                    >
+                      {selectedOspite
+                        ? `${selectedOspite.nome} ${selectedOspite.cognome}`
+                        : "Cerca ospite esistente..."
+                      }
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Cerca ospite..." 
+                        value={ospiteSearch}
+                        onValueChange={setOspiteSearch}
+                      />
+                      <CommandEmpty>Nessun ospite trovato.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          {filteredOspiti.map((ospite) => (
+                            <CommandItem
+                              key={ospite.id}
+                              value={`${ospite.nome} ${ospite.cognome}`}
+                              onSelect={() => {
+                                setSelectedOspite(ospite);
+                                setOpenOspiteCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedOspite?.id === ospite.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{ospite.nome} {ospite.cognome}</span>
+                                {ospite.telefono && (
+                                  <span className="text-xs text-muted-foreground">{ospite.telefono}</span>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedOspite && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOspite(null);
+                        setOspiteNome('');
+                        setOspiteCognome('');
+                        setOspiteTelefono('');
+                        setOspiteEmail('');
+                      }}
+                    >
+                      Cancella selezione
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Campi per i dati ospite */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="nome">Nome *</Label>
@@ -373,14 +510,26 @@ const PrenotazioneDialog = ({
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="telefono">Telefono</Label>
-                <Input
-                  id="telefono"
-                  value={ospiteTelefono}
-                  onChange={(e) => setOspiteTelefono(e.target.value)}
-                  placeholder="Telefono (opzionale)"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="telefono">Telefono</Label>
+                  <Input
+                    id="telefono"
+                    value={ospiteTelefono}
+                    onChange={(e) => setOspiteTelefono(e.target.value)}
+                    placeholder="Telefono (opzionale)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={ospiteEmail}
+                    onChange={(e) => setOspiteEmail(e.target.value)}
+                    placeholder="Email (opzionale)"
+                  />
+                </div>
               </div>
             </div>
           )}
