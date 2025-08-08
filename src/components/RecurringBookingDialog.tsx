@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Socio } from '@/types/database';
 
 interface RecurringBookingDialogProps {
   open: boolean;
@@ -18,6 +19,8 @@ interface RecurringBookingDialogProps {
 
 const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBookingDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [soci, setSoci] = useState<Socio[]>([]);
+  const [selectedSocioId, setSelectedSocioId] = useState<string>('');
   const [formData, setFormData] = useState({
     nome: '',
     cognome: '',
@@ -33,6 +36,52 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
     tariffaSpeciale: 20,
     note: ''
   });
+
+  useEffect(() => {
+    if (open) {
+      loadSoci();
+    }
+  }, [open]);
+
+  const loadSoci = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('soci')
+        .select('*')
+        .eq('attivo', true)
+        .order('cognome', { ascending: true });
+      
+      if (error) throw error;
+      setSoci(data || []);
+    } catch (error) {
+      console.error('Error loading soci:', error);
+    }
+  };
+
+  const handleSocioSelect = (socioId: string) => {
+    setSelectedSocioId(socioId);
+    if (socioId === 'nuovo') {
+      // Reset form per nuovo socio
+      setFormData(prev => ({
+        ...prev,
+        nome: '',
+        cognome: '',
+        telefono: '',
+        email: ''
+      }));
+    } else if (socioId) {
+      const socio = soci.find(s => s.id === socioId);
+      if (socio) {
+        setFormData(prev => ({
+          ...prev,
+          nome: socio.nome,
+          cognome: socio.cognome,
+          telefono: socio.telefono || '',
+          email: socio.email || ''
+        }));
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,22 +116,26 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
         if (ospiteError) throw ospiteError;
         ospiteId = ospite.id;
       } else {
-        // Per i soci, dovremmo cercare o creare un socio esistente
-        const { data: socio, error: socioError } = await supabase
-          .from('soci')
-          .insert({
-            nome: formData.nome,
-            cognome: formData.cognome,
-            telefono: formData.telefono,
-            email: formData.email,
-            tipo_socio: 'non_agonista',
-            note: `Corso ricorrente: ${formData.tipoCorso}`
-          })
-          .select()
-          .single();
+        // Per i soci, usa quello selezionato o creane uno nuovo
+        if (selectedSocioId && selectedSocioId !== 'nuovo') {
+          socioId = selectedSocioId;
+        } else {
+          const { data: socio, error: socioError } = await supabase
+            .from('soci')
+            .insert({
+              nome: formData.nome,
+              cognome: formData.cognome,
+              telefono: formData.telefono,
+              email: formData.email,
+              tipo_socio: 'non_agonista',
+              note: `Corso ricorrente: ${formData.tipoCorso}`
+            })
+            .select()
+            .single();
 
-        if (socioError) throw socioError;
-        socioId = socio.id;
+          if (socioError) throw socioError;
+          socioId = socio.id;
+        }
       }
 
       // Genera le prenotazioni ricorrenti
@@ -154,6 +207,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
 
       onSuccess();
       onOpenChange(false);
+      setSelectedSocioId('');
       setFormData({
         nome: '',
         cognome: '',
@@ -219,6 +273,23 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="socioSelect">Seleziona Socio Esistente</Label>
+                <Select value={selectedSocioId} onValueChange={handleSocioSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un socio o crea nuovo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nuovo">+ Crea Nuovo Cliente</SelectItem>
+                    {soci.map((socio) => (
+                      <SelectItem key={socio.id} value={socio.id}>
+                        {socio.cognome} {socio.nome} {socio.telefono ? `- ${socio.telefono}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nome">Nome *</Label>
@@ -227,6 +298,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                     value={formData.nome}
                     onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     required
+                    disabled={selectedSocioId && selectedSocioId !== 'nuovo'}
                   />
                 </div>
                 <div>
@@ -236,6 +308,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                     value={formData.cognome}
                     onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
                     required
+                    disabled={selectedSocioId && selectedSocioId !== 'nuovo'}
                   />
                 </div>
               </div>
@@ -246,6 +319,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                     id="telefono"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    disabled={selectedSocioId && selectedSocioId !== 'nuovo'}
                   />
                 </div>
                 <div>
@@ -255,6 +329,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                     id="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={selectedSocioId && selectedSocioId !== 'nuovo'}
                   />
                 </div>
               </div>
