@@ -23,17 +23,26 @@ interface PagamentoData {
 }
 
 const ReportFinanziario = () => {
-  const [pagamenti, setPagamenti] = useState<PagamentoData[]>([]);
+  const [pagamentiGiornalieri, setPagamentiGiornalieri] = useState<PagamentoData[]>([]);
+  const [pagamentiMensili, setPagamentiMensili] = useState<PagamentoData[]>([]);
+  const [pagamentiAnnuali, setPagamentiAnnuali] = useState<PagamentoData[]>([]);
+  const [pagamentiAnnoScorso, setPagamentiAnnoScorso] = useState<PagamentoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    loadPagamenti();
+    loadAllPagamenti();
   }, [selectedDate]);
 
-  const loadPagamenti = async () => {
+  const loadAllPagamenti = async () => {
     try {
-      const { data, error } = await supabase
+      const currentDate = new Date(selectedDate);
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
+      const previousYear = currentYear - 1;
+
+      // Query per pagamenti giornalieri
+      const { data: dataGiornalieri, error: errorGiornalieri } = await supabase
         .from('pagamenti')
         .select(`
           *,
@@ -49,8 +58,74 @@ const ReportFinanziario = () => {
         .lte('data_pagamento', selectedDate + 'T23:59:59')
         .order('data_pagamento', { ascending: false });
 
-      if (error) throw error;
-      setPagamenti(data || []);
+      // Query per pagamenti mensili (mese corrente)
+      const startOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
+      const endOfMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      
+      const { data: dataMensili, error: errorMensili } = await supabase
+        .from('pagamenti')
+        .select(`
+          *,
+          prenotazioni (
+            campo,
+            data,
+            ora_inizio,
+            soci (nome, cognome),
+            ospiti (nome, cognome)
+          )
+        `)
+        .gte('data_pagamento', startOfMonth)
+        .lte('data_pagamento', endOfMonth + 'T23:59:59')
+        .order('data_pagamento', { ascending: false });
+
+      // Query per pagamenti annuali (anno corrente)
+      const startOfYear = new Date(currentYear, 0, 1).toISOString().split('T')[0];
+      const endOfYear = new Date(currentYear, 11, 31).toISOString().split('T')[0];
+      
+      const { data: dataAnnuali, error: errorAnnuali } = await supabase
+        .from('pagamenti')
+        .select(`
+          *,
+          prenotazioni (
+            campo,
+            data,
+            ora_inizio,
+            soci (nome, cognome),
+            ospiti (nome, cognome)
+          )
+        `)
+        .gte('data_pagamento', startOfYear)
+        .lte('data_pagamento', endOfYear + 'T23:59:59')
+        .order('data_pagamento', { ascending: false });
+
+      // Query per stesso periodo anno precedente
+      const startOfPreviousYear = new Date(previousYear, 0, 1).toISOString().split('T')[0];
+      const endOfPreviousYear = new Date(previousYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      
+      const { data: dataAnnoScorso, error: errorAnnoScorso } = await supabase
+        .from('pagamenti')
+        .select(`
+          *,
+          prenotazioni (
+            campo,
+            data,
+            ora_inizio,
+            soci (nome, cognome),
+            ospiti (nome, cognome)
+          )
+        `)
+        .gte('data_pagamento', startOfPreviousYear)
+        .lte('data_pagamento', endOfPreviousYear + 'T23:59:59')
+        .order('data_pagamento', { ascending: false });
+
+      if (errorGiornalieri || errorMensili || errorAnnuali || errorAnnoScorso) {
+        throw new Error('Errore nel caricamento dei dati');
+      }
+
+      setPagamentiGiornalieri(dataGiornalieri || []);
+      setPagamentiMensili(dataMensili || []);
+      setPagamentiAnnuali(dataAnnuali || []);
+      setPagamentiAnnoScorso(dataAnnoScorso || []);
     } catch (error) {
       console.error('Error loading pagamenti:', error);
       toast({
@@ -72,21 +147,33 @@ const ReportFinanziario = () => {
     return 'Cliente non disponibile';
   };
 
-  const contanti = pagamenti.filter(p => p.metodo_pagamento_tipo === 'contanti');
-  const pos = pagamenti.filter(p => p.metodo_pagamento_tipo === 'pos');
-  
-  // Separa pagamenti soci e ospiti
-  const pagamentiSoci = pagamenti.filter(p => p.prenotazioni?.soci);
-  const pagamentiOspiti = pagamenti.filter(p => p.prenotazioni?.ospiti);
-
+  // Calcoli per pagamenti giornalieri
+  const contanti = pagamentiGiornalieri.filter(p => p.metodo_pagamento_tipo === 'contanti');
+  const pos = pagamentiGiornalieri.filter(p => p.metodo_pagamento_tipo === 'pos');
   const totaleContanti = contanti.reduce((sum, p) => sum + Number(p.importo), 0);
   const totalePOS = pos.reduce((sum, p) => sum + Number(p.importo), 0);
   const totaleBilancio = totaleContanti + totalePOS;
 
-  // Calcoli separati per soci e ospiti
+  // Calcoli per periodo mensile
+  const totaleMensile = pagamentiMensili.reduce((sum, p) => sum + Number(p.importo), 0);
+  const contantiMensili = pagamentiMensili.filter(p => p.metodo_pagamento_tipo === 'contanti').reduce((sum, p) => sum + Number(p.importo), 0);
+  const posMensili = pagamentiMensili.filter(p => p.metodo_pagamento_tipo === 'pos').reduce((sum, p) => sum + Number(p.importo), 0);
+
+  // Calcoli per periodo annuale
+  const totaleAnnuale = pagamentiAnnuali.reduce((sum, p) => sum + Number(p.importo), 0);
+  const contantiAnnuali = pagamentiAnnuali.filter(p => p.metodo_pagamento_tipo === 'contanti').reduce((sum, p) => sum + Number(p.importo), 0);
+  const posAnnuali = pagamentiAnnuali.filter(p => p.metodo_pagamento_tipo === 'pos').reduce((sum, p) => sum + Number(p.importo), 0);
+
+  // Calcoli per anno precedente (stesso periodo)
+  const totaleAnnoScorso = pagamentiAnnoScorso.reduce((sum, p) => sum + Number(p.importo), 0);
+  const crescitaAnnuale = totaleAnnoScorso > 0 ? ((totaleAnnuale - totaleAnnoScorso) / totaleAnnoScorso) * 100 : 0;
+
+  // Separazione soci/ospiti per calcoli IVA
+  const pagamentiSoci = pagamentiGiornalieri.filter(p => p.prenotazioni?.soci);
+  const pagamentiOspiti = pagamentiGiornalieri.filter(p => p.prenotazioni?.ospiti);
   const incassoSoci = pagamentiSoci.reduce((sum, p) => sum + Number(p.importo), 0);
   const incassoOspiti = pagamentiOspiti.reduce((sum, p) => sum + Number(p.importo), 0);
-  const incassoOspitiNettoIVA = incassoOspiti / 1.11; // Scorporo IVA 11%
+  const incassoOspitiNettoIVA = incassoOspiti / 1.11;
   const ivaOspiti = incassoOspiti - incassoOspitiNettoIVA;
 
   if (loading) return <div>Caricamento report...</div>;
@@ -115,11 +202,11 @@ const ReportFinanziario = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Giornaliero */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cassa (Contanti)</CardTitle>
+            <CardTitle className="text-sm font-medium">Cassa Giornaliera</CardTitle>
             <Banknote className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -132,7 +219,7 @@ const ReportFinanziario = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">POS (Elettronico)</CardTitle>
+            <CardTitle className="text-sm font-medium">POS Giornaliero</CardTitle>
             <CreditCard className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -145,14 +232,75 @@ const ReportFinanziario = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bilancio Totale</CardTitle>
+            <CardTitle className="text-sm font-medium">Totale Giornaliero</CardTitle>
             <Euro className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">€{totaleBilancio.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              {pagamenti.length} transazioni totali
+              {pagamentiGiornalieri.length} transazioni totali
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Cards - Mensile e Annuale */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Incasso Mensile
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">€{totaleMensile.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Contanti: €{contantiMensili.toFixed(2)} | POS: €{posMensili.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Incasso Annuale
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">€{totaleAnnuale.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Contanti: €{contantiAnnuali.toFixed(2)} | POS: €{posAnnuali.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Anno Precedente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">€{totaleAnnoScorso.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Stesso periodo {new Date(selectedDate).getFullYear() - 1}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Crescita Annuale
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-xl font-bold ${crescitaAnnuale >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {crescitaAnnuale >= 0 ? '+' : ''}{crescitaAnnuale.toFixed(1)}%
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              vs stesso periodo anno scorso
+            </div>
           </CardContent>
         </Card>
       </div>
