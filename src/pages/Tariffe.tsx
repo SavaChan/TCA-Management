@@ -7,10 +7,15 @@ import { Edit, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tariffa } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import TariffaDialog from '@/components/TariffaDialog';
 
 const Tariffe = () => {
   const [tariffe, setTariffe] = useState<Tariffa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTariffa, setSelectedTariffa] = useState<Tariffa | null>(null);
+  const { profile } = useAuth();
 
   useEffect(() => {
     loadTariffe();
@@ -56,6 +61,18 @@ const Tariffe = () => {
     }
   };
 
+  const isAdmin = profile?.ruolo === 'admin';
+
+  const handleAddTariffa = () => {
+    setSelectedTariffa(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditTariffa = (tariffa: Tariffa) => {
+    setSelectedTariffa(tariffa);
+    setDialogOpen(true);
+  };
+
   if (loading) return <div>Caricamento tariffe...</div>;
 
   return (
@@ -67,10 +84,12 @@ const Tariffe = () => {
             Configura i prezzi per i diversi tipi di prenotazione
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Aggiungi Tariffa
-        </Button>
+        {isAdmin && (
+          <Button onClick={handleAddTariffa}>
+            <Plus className="h-4 w-4 mr-2" />
+            Aggiungi Tariffa
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -133,10 +152,16 @@ const Tariffe = () => {
                         €{tariffa.prezzo_mezz_ora.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Modifica
-                        </Button>
+                        {isAdmin && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditTariffa(tariffa)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Modifica
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -201,6 +226,13 @@ const Tariffe = () => {
           </Card>
         </div>
       </div>
+
+      <TariffaDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        tariffa={selectedTariffa}
+        onSuccess={loadTariffe}
+      />
     </div>
   );
 };
