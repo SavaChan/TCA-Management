@@ -1,7 +1,67 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Calendar, Euro, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    soci: 0,
+    prenotazioniOggi: 0,
+    incassiMese: 0,
+    daPagare: 0
+  });
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      // Conta soci attivi
+      const { count: sociCount } = await supabase
+        .from('soci')
+        .select('*', { count: 'exact', head: true })
+        .eq('attivo', true);
+
+      // Prenotazioni oggi
+      const oggi = new Date().toISOString().split('T')[0];
+      const { count: prenotazioniOggi } = await supabase
+        .from('prenotazioni')
+        .select('*', { count: 'exact', head: true })
+        .eq('data', oggi)
+        .eq('annullata_pioggia', false);
+
+      // Incassi del mese corrente
+      const inizioMese = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const fineMese = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
+      
+      const { data: incassiMese } = await supabase
+        .from('pagamenti')
+        .select('importo')
+        .gte('data_pagamento', inizioMese)
+        .lte('data_pagamento', fineMese);
+
+      // Prenotazioni da pagare
+      const { data: daPagare } = await supabase
+        .from('prenotazioni')
+        .select('importo')
+        .eq('stato_pagamento', 'da_pagare')
+        .eq('annullata_pioggia', false);
+
+      const totalIncassi = incassiMese?.reduce((sum, p) => sum + Number(p.importo), 0) || 0;
+      const totalDaPagare = daPagare?.reduce((sum, p) => sum + Number(p.importo), 0) || 0;
+
+      setStats({
+        soci: sociCount || 0,
+        prenotazioniOggi: prenotazioniOggi || 0,
+        incassiMese: totalIncassi,
+        daPagare: totalDaPagare
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,9 +80,9 @@ const Dashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{stats.soci}</div>
             <p className="text-xs text-muted-foreground">
-              Nessun socio registrato
+              {stats.soci === 0 ? 'Nessun socio registrato' : `${stats.soci > 1 ? 'soci attivi' : 'socio attivo'}`}
             </p>
           </CardContent>
         </Card>
@@ -35,9 +95,9 @@ const Dashboard = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{stats.prenotazioniOggi}</div>
             <p className="text-xs text-muted-foreground">
-              Nessuna prenotazione
+              {stats.prenotazioniOggi === 0 ? 'Nessuna prenotazione' : `${stats.prenotazioniOggi > 1 ? 'prenotazioni oggi' : 'prenotazione oggi'}`}
             </p>
           </CardContent>
         </Card>
@@ -50,9 +110,9 @@ const Dashboard = () => {
             <Euro className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€0,00</div>
+            <div className="text-2xl font-bold">€{stats.incassiMese.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Nessun incasso
+              {stats.incassiMese === 0 ? 'Nessun incasso' : 'Incassi del mese corrente'}
             </p>
           </CardContent>
         </Card>
@@ -65,9 +125,9 @@ const Dashboard = () => {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€0,00</div>
+            <div className="text-2xl font-bold">€{stats.daPagare.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Nessun credito
+              {stats.daPagare === 0 ? 'Nessun credito' : 'Importi da incassare'}
             </p>
           </CardContent>
         </Card>

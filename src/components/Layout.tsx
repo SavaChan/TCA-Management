@@ -50,7 +50,9 @@ const Layout = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-primary">Tennis Club Admin</h1>
+              <Link to="/" className="hover:opacity-80 transition-opacity">
+                <h1 className="text-2xl font-bold text-primary">Tennis Club Manager</h1>
+              </Link>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
