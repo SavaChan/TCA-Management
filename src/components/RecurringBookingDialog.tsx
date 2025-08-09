@@ -448,7 +448,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Periodo del Corso</span>
+                <span>Periodo dell'Abbonamento</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
