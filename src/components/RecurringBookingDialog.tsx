@@ -83,6 +83,21 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
     }
   };
 
+  const mapTipoPrenotazione = (tipo: string) => {
+    switch (tipo) {
+      case 'corso_ragazzi':
+      case 'corso_adulti':
+        return 'corso';
+      case 'lezioni_private':
+        return 'lezione';
+      case 'abbonamento_socio':
+      case 'abbonamento_ospite':
+        return 'singolare';
+      default:
+        return 'lezione';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome || !formData.cognome || !formData.dataInizio || !formData.dataFine) {
@@ -161,7 +176,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
             data: targetDay.toISOString().split('T')[0],
             ora_inizio: formData.oraInizio,
             ora_fine: oraFine,
-            tipo_prenotazione: formData.tipoCorso,
+            tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso),
             tipo_campo: 'scoperto',
             diurno: parseInt(ore) < 18,
             importo: formData.tariffaSpeciale,
@@ -430,7 +445,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                   />
                 </div>
                 <div>
-                  <Label htmlFor="tariffaSpeciale">Tariffa per Lezione (€)</Label>
+                  <Label htmlFor="tariffaSpeciale">Tariffa oraria (€)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -503,7 +518,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                     Periodo: {formData.dataInizio} - {formData.dataFine}
                   </Badge>
                   <Badge variant="secondary">
-                    €{formData.tariffaSpeciale} per lezione
+                    Tariffa oraria: €{formData.tariffaSpeciale}
                   </Badge>
                   <Badge variant="secondary">
                     Campo {formData.campo}
