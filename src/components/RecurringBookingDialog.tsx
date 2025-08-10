@@ -158,33 +158,45 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
       const dataInizio = new Date(formData.dataInizio);
       const dataFine = new Date(formData.dataFine);
 
-      for (let data = new Date(dataInizio); data <= dataFine; data.setDate(data.getDate() + 7)) {
-        // Trova il giorno corretto della settimana
-        const targetDay = new Date(data);
-        const dayDiff = (formData.giornoSettimana - targetDay.getDay() + 6) % 7;
-        targetDay.setDate(targetDay.getDate() + dayDiff);
+      // Trova la prima occorrenza del giorno della settimana selezionato
+      let currentDate = new Date(dataInizio);
+      
+      // Aggiusta il giorno della settimana (0=domenica, 1=lunedì, etc.)
+      // formData.giornoSettimana usa 1=lunedì, quindi dobbiamo convertire
+      const targetDayOfWeek = formData.giornoSettimana === 7 ? 0 : formData.giornoSettimana;
+      
+      // Trova il primo giorno della settimana target
+      while (currentDate.getDay() !== targetDayOfWeek) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
 
-        if (targetDay >= dataInizio && targetDay <= dataFine) {
-          // Calcola ora fine
-          const [ore, minuti] = formData.oraInizio.split(':');
-          const oraFine = `${(parseInt(ore) + formData.durata).toString().padStart(2, '0')}:${minuti}`;
+      // Genera una prenotazione per ogni settimana nel periodo
+      while (currentDate <= dataFine) {
+        // Calcola ora fine
+        const [ore, minuti] = formData.oraInizio.split(':');
+        const oraFine = `${(parseInt(ore) + formData.durata).toString().padStart(2, '0')}:${minuti}`;
 
-          prenotazioni.push({
-            socio_id: socioId,
-            ospite_id: ospiteId,
-            campo: formData.campo,
-            data: targetDay.toISOString().split('T')[0],
-            ora_inizio: formData.oraInizio,
-            ora_fine: oraFine,
-            tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso),
-            tipo_campo: 'scoperto',
-            diurno: parseInt(ore) < 18,
-            importo: formData.tariffaSpeciale,
-            stato_pagamento: 'pagato', // I corsi sono solitamente pre-pagati
-            note: `Prenotazione ricorrente - ${formData.note}`,
-            annullata_pioggia: false
-          });
-        }
+        // Determina stato_pagamento: 'da_pagare' per abbonamenti, 'pagato' per corsi pre-pagati
+        const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
+
+        prenotazioni.push({
+          socio_id: socioId,
+          ospite_id: ospiteId,
+          campo: formData.campo,
+          data: currentDate.toISOString().split('T')[0],
+          ora_inizio: formData.oraInizio,
+          ora_fine: oraFine,
+          tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso),
+          tipo_campo: 'scoperto',
+          diurno: parseInt(ore) < 18,
+          importo: formData.tariffaSpeciale,
+          stato_pagamento: statoPagamento,
+          note: `Prenotazione ricorrente - ${formData.note}`,
+          annullata_pioggia: false
+        });
+
+        // Vai alla settimana successiva
+        currentDate.setDate(currentDate.getDate() + 7);
       }
 
       // Inserisci tutte le prenotazioni

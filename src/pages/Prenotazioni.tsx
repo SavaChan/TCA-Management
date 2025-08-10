@@ -320,11 +320,23 @@ const Prenotazioni = () => {
 
   const getPrenotazioneForSlot = (day: Date, time: string, campo: number) => {
     const dayStr = day.toISOString().split('T')[0];
-    return prenotazioni.find(p => 
-      p.data === dayStr && 
-      p.ora_inizio.substring(0, 5) === time && 
-      p.campo === campo
-    );
+    return prenotazioni.find(p => {
+      if (p.data !== dayStr || p.campo !== campo) return false;
+      
+      // Check if the current time slot falls within the booking period
+      const startTime = p.ora_inizio.substring(0, 5);
+      const endTime = p.ora_fine.substring(0, 5);
+      
+      return time >= startTime && time < endTime;
+    });
+  };
+
+  const isSlotContinuation = (day: Date, time: string, campo: number) => {
+    const prenotazione = getPrenotazioneForSlot(day, time, campo);
+    if (!prenotazione) return false;
+    
+    const startTime = prenotazione.ora_inizio.substring(0, 5);
+    return time !== startTime;
   };
 
   const [pagamentiCache, setPagamentiCache] = useState<Record<string, string>>({});
@@ -520,22 +532,29 @@ const Prenotazioni = () => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 1);
                         return (
                            <td key={dayIdx} className="p-1">
-                               {prenotazione ? (
-                                  <div className="relative group">
-                                    <div 
-                                      className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
-                                      onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
-                                    >
-                                     <div className="font-medium">
-                                       {getNomePrenotazione(prenotazione)}
-                                     </div>
-                                     <div>€{prenotazione.importo}</div>
-                                     {prenotazione.annullata_pioggia && (
-                                       <div className="absolute -top-1 -right-1">
-                                         <CloudRain size={12} className="text-blue-600" />
-                                       </div>
-                                     )}
-                                   </div>
+                                {prenotazione ? (
+                                   <div className="relative group">
+                                     <div 
+                                       className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)} ${isSlotContinuation(day, time, 1) ? 'border-t-0 rounded-t-none opacity-80' : ''}`}
+                                       onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
+                                     >
+                                      {!isSlotContinuation(day, time, 1) && (
+                                        <>
+                                          <div className="font-medium">
+                                            {getNomePrenotazione(prenotazione)}
+                                          </div>
+                                          <div>€{prenotazione.importo}</div>
+                                        </>
+                                      )}
+                                      {isSlotContinuation(day, time, 1) && (
+                                        <div className="text-xs opacity-60">│</div>
+                                      )}
+                                      {prenotazione.annullata_pioggia && (
+                                        <div className="absolute -top-1 -right-1">
+                                          <CloudRain size={12} className="text-blue-600" />
+                                        </div>
+                                      )}
+                                    </div>
                                    
                                    {/* Menu contestuale per annullamento pioggia */}
                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -651,22 +670,29 @@ const Prenotazioni = () => {
                         const prenotazione = getPrenotazioneForSlot(day, time, 2);
                         return (
                              <td key={dayIdx} className="p-1">
-                               {prenotazione ? (
-                                  <div className="relative group">
-                                    <div 
-                                      className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)}`}
-                                      onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
-                                    >
-                                     <div className="font-medium">
-                                       {getNomePrenotazione(prenotazione)}
-                                     </div>
-                                     <div>€{prenotazione.importo}</div>
-                                     {prenotazione.annullata_pioggia && (
-                                       <div className="absolute -top-1 -right-1">
-                                         <CloudRain size={12} className="text-blue-600" />
-                                       </div>
-                                     )}
-                                   </div>
+                                {prenotazione ? (
+                                   <div className="relative group">
+                                     <div 
+                                       className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)} ${isSlotContinuation(day, time, 2) ? 'border-t-0 rounded-t-none opacity-80' : ''}`}
+                                       onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
+                                     >
+                                      {!isSlotContinuation(day, time, 2) && (
+                                        <>
+                                          <div className="font-medium">
+                                            {getNomePrenotazione(prenotazione)}
+                                          </div>
+                                          <div>€{prenotazione.importo}</div>
+                                        </>
+                                      )}
+                                      {isSlotContinuation(day, time, 2) && (
+                                        <div className="text-xs opacity-60">│</div>
+                                      )}
+                                      {prenotazione.annullata_pioggia && (
+                                        <div className="absolute -top-1 -right-1">
+                                          <CloudRain size={12} className="text-blue-600" />
+                                        </div>
+                                      )}
+                                    </div>
                                    
                                    {/* Menu contestuale per annullamento pioggia */}
                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
