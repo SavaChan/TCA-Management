@@ -178,6 +178,9 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
 
         // Determina stato_pagamento: 'da_pagare' per abbonamenti, 'pagato' per corsi pre-pagati
         const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
+        
+        // Crea note descrittive per identificare la prenotazione ricorrente
+        const noteRicorrente = `${formData.tipoCorso} - ${formData.nome} ${formData.cognome}${formData.note ? ' - ' + formData.note : ''}`;
 
         prenotazioni.push({
           socio_id: socioId,
@@ -191,7 +194,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
           diurno: parseInt(ore) < 18,
           importo: formData.tariffaSpeciale,
           stato_pagamento: statoPagamento,
-          note: `Prenotazione ricorrente - ${formData.note}`,
+          note: noteRicorrente,
           annullata_pioggia: false
         });
 
@@ -206,25 +209,28 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
 
       if (prenotazioniError) throw prenotazioniError;
 
-      // Crea i pagamenti per le prenotazioni
-      const { data: prenotazioniInserite } = await supabase
-        .from('prenotazioni')
-        .select('id')
-        .eq('socio_id', socioId)
-        .eq('ospite_id', ospiteId)
-        .gte('data', formData.dataInizio)
-        .lte('data', formData.dataFine);
+      // Crea i pagamenti solo per le prenotazioni già pagate (corsi pre-pagati)
+      if (statoPagamento === 'pagato') {
+        const { data: prenotazioniInserite } = await supabase
+          .from('prenotazioni')
+          .select('id')
+          .eq('socio_id', socioId)
+          .eq('ospite_id', ospiteId)
+          .gte('data', formData.dataInizio)
+          .lte('data', formData.dataFine)
+          .eq('note', noteRicorrente);
 
-      if (prenotazioniInserite) {
-        const pagamenti = prenotazioniInserite.map(p => ({
-          prenotazione_id: p.id,
-          importo: formData.tariffaSpeciale,
-          metodo_pagamento: 'Abbonamento/Corso',
-          metodo_pagamento_tipo: 'abbonamento',
-          note: `Pagamento corso ricorrente ${formData.tipoCorso}`
-        }));
+        if (prenotazioniInserite && prenotazioniInserite.length > 0) {
+          const pagamenti = prenotazioniInserite.map(p => ({
+            prenotazione_id: p.id,
+            importo: formData.tariffaSpeciale,
+            metodo_pagamento: `Corso ${formData.tipoCorso}`,
+            metodo_pagamento_tipo: 'corso',
+            note: `Pagamento anticipato corso ricorrente - ${formData.nome} ${formData.cognome}`
+          }));
 
-        await supabase.from('pagamenti').insert(pagamenti);
+          await supabase.from('pagamenti').insert(pagamenti);
+        }
       }
 
       toast({
@@ -508,7 +514,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                   id="note"
                   value={formData.note}
                   onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  placeholder="Note aggiuntive sul corso..."
+                  placeholder="es. Corso principianti, Lezioni con Maestro Roberto..."
                 />
               </div>
             </CardContent>

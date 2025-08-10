@@ -82,6 +82,7 @@ const Prenotazioni = () => {
         `)
         .gte('data', startOfWeek.toISOString().split('T')[0])
         .lte('data', endOfWeek.toISOString().split('T')[0])
+        .eq('annullata_pioggia', false)
         .order('data', { ascending: true })
         .order('ora_inizio', { ascending: true });
 
@@ -310,6 +311,19 @@ const Prenotazioni = () => {
   };
 
   const getNomePrenotazione = (prenotazione: Prenotazione) => {
+    // Prima controlla se c'è un nome nelle note (per prenotazioni ricorrenti)
+    if (prenotazione.note && prenotazione.note.includes(' - ')) {
+      const parts = prenotazione.note.split(' - ');
+      if (parts.length >= 2) {
+        // Estrae il nome dalla nota (formato: "tipo_corso - Nome Cognome - note_aggiuntive")
+        const nomeFromNote = parts[1];
+        if (nomeFromNote && nomeFromNote.trim()) {
+          return nomeFromNote.trim();
+        }
+      }
+    }
+    
+    // Fallback al metodo normale
     if (prenotazione.soci) {
       return `${prenotazione.soci.nome} ${prenotazione.soci.cognome}`;
     } else if (prenotazione.ospiti) {
@@ -345,6 +359,15 @@ const Prenotazioni = () => {
     // Se annullata per pioggia, usa uno stile specifico
     if (prenotazione.annullata_pioggia) {
       return 'bg-red-100/50 text-red-700 border border-red-300/50 opacity-60';
+    }
+    
+    // Se è una prenotazione ricorrente (corso), usa un colore specifico
+    if (prenotazione.note && (prenotazione.note.includes('corso_') || prenotazione.note.includes('abbonamento_'))) {
+      if (prenotazione.stato_pagamento === 'pagato') {
+        return 'bg-purple-100/50 text-purple-700 border border-purple-300/50';
+      } else {
+        return 'bg-orange-100/50 text-orange-700 border border-orange-300/50';
+      }
     }
     
     if (prenotazione.stato_pagamento === 'da_pagare') {
@@ -780,7 +803,11 @@ const Prenotazioni = () => {
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-purple-100 rounded border border-purple-300"></div>
-              <span className="text-sm">Prenotazioni ricorrenti</span>
+              <span className="text-sm">Corsi/Abbonamenti (pagati)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-orange-100 rounded border border-orange-300"></div>
+              <span className="text-sm">Corsi/Abbonamenti (da pagare)</span>
             </div>
           </div>
         </CardContent>
