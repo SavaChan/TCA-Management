@@ -111,83 +111,87 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
 
     setLoading(true);
     try {
-      // Prima crea o trova l'ospite per corsi ospiti
+      // 1. Genera le date e gli orari per le potenziali prenotazioni
+      const potentialSlots = [];
+      const dataInizio = new Date(formData.dataInizio);
+      const dataFine = new Date(formData.dataFine);
+      let currentDate = new Date(dataInizio);
+      const targetDayOfWeek = formData.giornoSettimana === 7 ? 0 : formData.giornoSettimana;
+
+      while (currentDate.getDay() !== targetDayOfWeek) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      while (currentDate <= dataFine) {
+        potentialSlots.push({
+          data: currentDate.toISOString().split('T')[0],
+          ora_inizio: formData.oraInizio,
+          campo: formData.campo,
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+
+      if (potentialSlots.length === 0) {
+        toast({ title: "Attenzione", description: "Nessuno slot di prenotazione valido nel periodo selezionato." });
+        return;
+      }
+
+      // 2. Controlla la disponibilità degli slot
+      const orConditions = potentialSlots.map(slot =>
+        `and(data.eq.${slot.data},ora_inizio.eq.${slot.ora_inizio},campo.eq.${slot.campo})`
+      ).join(',');
+
+      const { data: existingBookings, error: checkError } = await supabase
+        .from('prenotazioni')
+        .select('data, ora_inizio')
+        .or(orConditions);
+
+      if (checkError) throw checkError;
+
+      if (existingBookings && existingBookings.length > 0) {
+        const conflictingSlots = existingBookings.map(b =>
+          `${new Date(b.data).toLocaleDateString('it-IT')} ore ${b.ora_inizio.substring(0,5)}`
+        ).join(', ');
+        toast({
+          title: "Orari non disponibili",
+          description: `I seguenti slot sono già occupati: ${conflictingSlots}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 3. Se tutto è libero, procedi con la creazione
       let socioId = null;
       let ospiteId = null;
 
+      // Gestione socio/ospite
       if (formData.tipoCorso === 'corso_ospiti' || formData.tipoCorso === 'abbonamento_ospite') {
-        const { data: ospite, error: ospiteError } = await supabase
-          .from('ospiti')
-          .insert({
-            nome: formData.nome,
-            cognome: formData.cognome,
-            telefono: formData.telefono,
-            email: formData.email,
-            note: `Corso ricorrente: ${formData.tipoCorso}`
-          })
-          .select()
-          .single();
-
+        const { data: ospite, error: ospiteError } = await supabase.from('ospiti').insert({ nome: formData.nome, cognome: formData.cognome, telefono: formData.telefono, email: formData.email, note: `Corso ricorrente: ${formData.tipoCorso}` }).select().single();
         if (ospiteError) throw ospiteError;
         ospiteId = ospite.id;
       } else {
-        // Per i soci, usa quello selezionato o creane uno nuovo
         if (selectedSocioId && selectedSocioId !== 'nuovo') {
           socioId = selectedSocioId;
         } else {
-          const { data: socio, error: socioError } = await supabase
-            .from('soci')
-            .insert({
-              nome: formData.nome,
-              cognome: formData.cognome,
-              telefono: formData.telefono,
-              email: formData.email,
-              tipo_socio: 'non_agonista',
-              note: `Corso ricorrente: ${formData.tipoCorso}`
-            })
-            .select()
-            .single();
-
+          const { data: socio, error: socioError } = await supabase.from('soci').insert({ nome: formData.nome, cognome: formData.cognome, telefono: formData.telefono, email: formData.email, tipo_socio: 'non_agonista', note: `Corso ricorrente: ${formData.tipoCorso}` }).select().single();
           if (socioError) throw socioError;
           socioId = socio.id;
         }
       }
 
-      // Genera le prenotazioni ricorrenti
-      const prenotazioni = [];
-      const dataInizio = new Date(formData.dataInizio);
-      const dataFine = new Date(formData.dataFine);
-
-      // Trova la prima occorrenza del giorno della settimana selezionato
-      let currentDate = new Date(dataInizio);
+      // 4. Crea gli oggetti prenotazione
+      const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
+      const noteRicorrente = `${formData.tipoCorso} - ${formData.nome} ${formData.cognome}${formData.note ? ' - ' + formData.note : ''}`;
       
-      // Aggiusta il giorno della settimana (0=domenica, 1=lunedì, etc.)
-      // formData.giornoSettimana usa 1=lunedì, quindi dobbiamo convertire
-      const targetDayOfWeek = formData.giornoSettimana === 7 ? 0 : formData.giornoSettimana;
-      
-      // Trova il primo giorno della settimana target
-      while (currentDate.getDay() !== targetDayOfWeek) {
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      // Genera una prenotazione per ogni settimana nel periodo
-      while (currentDate <= dataFine) {
-        // Calcola ora fine
-        const [ore, minuti] = formData.oraInizio.split(':');
+      const prenotazioni = potentialSlots.map(slot => {
+        const [ore, minuti] = slot.ora_inizio.split(':');
         const oraFine = `${(parseInt(ore) + formData.durata).toString().padStart(2, '0')}:${minuti}`;
-
-        // Determina stato_pagamento: 'da_pagare' per abbonamenti, 'pagato' per corsi pre-pagati
-        const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
-        
-        // Crea note descrittive per identificare la prenotazione ricorrente
-        const noteRicorrente = `${formData.tipoCorso} - ${formData.nome} ${formData.cognome}${formData.note ? ' - ' + formData.note : ''}`;
-
-        prenotazioni.push({
+        return {
           socio_id: socioId,
           ospite_id: ospiteId,
-          campo: formData.campo,
-          data: currentDate.toISOString().split('T')[0],
-          ora_inizio: formData.oraInizio,
+          campo: slot.campo,
+          data: slot.data,
+          ora_inizio: slot.ora_inizio,
           ora_fine: oraFine,
           tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso),
           tipo_campo: 'scoperto',
@@ -196,30 +200,16 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
           stato_pagamento: statoPagamento,
           note: noteRicorrente,
           annullata_pioggia: false
-        });
+        };
+      });
 
-        // Vai alla settimana successiva
-        currentDate.setDate(currentDate.getDate() + 7);
-      }
-
-      // Inserisci tutte le prenotazioni
-      const { error: prenotazioniError } = await supabase
-        .from('prenotazioni')
-        .insert(prenotazioni);
-
+      // 5. Inserisci le prenotazioni
+      const { error: prenotazioniError } = await supabase.from('prenotazioni').insert(prenotazioni);
       if (prenotazioniError) throw prenotazioniError;
 
-      // Crea i pagamenti solo per le prenotazioni già pagate (corsi pre-pagati)
+      // 6. Crea i pagamenti se necessario
       if (statoPagamento === 'pagato') {
-        const { data: prenotazioniInserite } = await supabase
-          .from('prenotazioni')
-          .select('id')
-          .eq('socio_id', socioId)
-          .eq('ospite_id', ospiteId)
-          .gte('data', formData.dataInizio)
-          .lte('data', formData.dataFine)
-          .eq('note', noteRicorrente);
-
+        const { data: prenotazioniInserite } = await supabase.from('prenotazioni').select('id').gte('data', formData.dataInizio).lte('data', formData.dataFine).eq('note', noteRicorrente);
         if (prenotazioniInserite && prenotazioniInserite.length > 0) {
           const pagamenti = prenotazioniInserite.map(p => ({
             prenotazione_id: p.id,
@@ -228,7 +218,6 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
             metodo_pagamento_tipo: 'corso',
             note: `Pagamento anticipato corso ricorrente - ${formData.nome} ${formData.cognome}`
           }));
-
           await supabase.from('pagamenti').insert(pagamenti);
         }
       }
@@ -241,26 +230,13 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
       onSuccess();
       onOpenChange(false);
       setSelectedSocioId('');
-      setFormData({
-        nome: '',
-        cognome: '',
-        telefono: '',
-        email: '',
-        campo: 1,
-        giornoSettimana: 1,
-        oraInizio: '09:00',
-        durata: 1,
-        dataInizio: '',
-        dataFine: '',
-        tipoCorso: 'corso_ragazzi',
-        tariffaSpeciale: 20,
-        note: ''
-      });
+      setFormData({ nome: '', cognome: '', telefono: '', email: '', campo: 1, giornoSettimana: 1, oraInizio: '09:00', durata: 1, dataInizio: '', dataFine: '', tipoCorso: 'corso_ragazzi', tariffaSpeciale: 20, note: '' });
+
     } catch (error) {
       console.error('Error creating recurring bookings:', error);
       toast({
         title: "Errore",
-        description: "Impossibile creare le prenotazioni ricorrenti",
+        description: (error as Error).message || "Impossibile creare le prenotazioni ricorrenti. Controlla che non ci siano conflitti di orario.",
         variant: "destructive",
       });
     } finally {
