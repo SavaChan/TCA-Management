@@ -164,24 +164,66 @@ const ReportInsoluti = () => {
     setPayModalOpen(true);
   };
   const handlePay = async () => {
-    const ids = selectedPrenotazioni.map((p)=>p.id);
-    const amount = paymentAmount===''? selectedPrenotazioni.reduce((s,p)=>s+Number(p.importo),0) : parseFloat(paymentAmount);
+    const ids = selectedPrenotazioni.map((p) => p.id);
+    const enteredAmount = paymentAmount === '' ? null : parseFloat(paymentAmount);
+    const totalDebt = selectedPrenotazioni.reduce((s, p) => s + Number(p.importo), 0);
     
     try {
-      // Inserisci un pagamento per ogni prenotazione con il relativo importo
-      const { error: paymentError } = await supabase.from('pagamenti').insert(
-        selectedPrenotazioni.map(p=>({
-          prenotazione_id: p.id,
-          importo: selectedPrenotazioni.length === 1 ? amount : Number(p.importo),
+      // Logica per gestire i pagamenti
+      if (selectedPrenotazioni.length === 1) {
+        // Pagamento singolo: usa l'importo inserito o quello della prenotazione
+        const finalAmount = enteredAmount !== null ? enteredAmount : Number(selectedPrenotazioni[0].importo);
+        
+        const { error: paymentError } = await supabase.from('pagamenti').insert({
+          prenotazione_id: selectedPrenotazioni[0].id,
+          importo: finalAmount,
           data_pagamento: new Date().toISOString(),
           metodo_pagamento: 'Contanti',
           metodo_pagamento_tipo: 'contanti'
-        }))
-      );
+        });
+        
+        if (paymentError) throw paymentError;
+        
+      } else {
+        // Pagamento multiplo: distribuisce l'importo proporzionalmente se specificato
+        if (enteredAmount !== null && enteredAmount !== totalDebt) {
+          // Distribuzione proporzionale dell'importo inserito
+          for (const prenotazione of selectedPrenotazioni) {
+            const proportion = Number(prenotazione.importo) / totalDebt;
+            const proportionalAmount = enteredAmount * proportion;
+            
+            const { error: paymentError } = await supabase.from('pagamenti').insert({
+              prenotazione_id: prenotazione.id,
+              importo: proportionalAmount,
+              data_pagamento: new Date().toISOString(),
+              metodo_pagamento: 'Contanti',
+              metodo_pagamento_tipo: 'contanti'
+            });
+            
+            if (paymentError) throw paymentError;
+          }
+        } else {
+          // Pagamento completo: ogni prenotazione con il suo importo
+          const { error: paymentError } = await supabase.from('pagamenti').insert(
+            selectedPrenotazioni.map(p => ({
+              prenotazione_id: p.id,
+              importo: Number(p.importo),
+              data_pagamento: new Date().toISOString(),
+              metodo_pagamento: 'Contanti',
+              metodo_pagamento_tipo: 'contanti'
+            }))
+          );
+          
+          if (paymentError) throw paymentError;
+        }
+      }
       
-      if (paymentError) throw paymentError;
+      // Aggiorna lo stato delle prenotazioni
+      const { error: updateError } = await supabase
+        .from('prenotazioni')
+        .update({ stato_pagamento: 'pagato'})
+        .in('id', ids);
       
-      const { error: updateError } = await supabase.from('prenotazioni').update({ stato_pagamento: 'pagato'}).in('id', ids);
       if (updateError) throw updateError;
       
       toast({title:'Pagamento registrato con successo'});
