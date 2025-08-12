@@ -269,13 +269,15 @@ export default function ReportMaestri() {
         ) : (
           maestriStats.map((stats) => (
             <Collapsible key={stats.maestro.id} className="border rounded-lg">
-              <CollapsibleTrigger className="w-full p-4 flex justify-between items-center bg-muted/20 hover:bg-muted/40 transition-colors">
-                <div className="font-bold text-lg">{stats.maestro.nome} {stats.maestro.cognome}</div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Ore Totali: {(stats.oreCorsi + stats.oreLezioni).toFixed(1)}</span>
-                  <span className="text-sm font-semibold">Totale: €{stats.importoTotale.toFixed(2)}</span>
-                  <ChevronDown className="h-5 w-5 transition-transform" />
-                </div>
+              <CollapsibleTrigger asChild>
+                <button className="w-full p-4 flex justify-between items-center bg-muted/20 hover:bg-muted/40 transition-colors text-left data-[state=open]:bg-muted/50">
+                  <div className="font-bold text-lg">{stats.maestro.nome} {stats.maestro.cognome}</div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">Ore Totali: {(stats.oreCorsi + stats.oreLezioni).toFixed(1)}</span>
+                    <span className="text-sm font-semibold">Totale: €{stats.importoTotale.toFixed(2)}</span>
+                    <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
+                  </div>
+                </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="p-4">
                 <Table>
