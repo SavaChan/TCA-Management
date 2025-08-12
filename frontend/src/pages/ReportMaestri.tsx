@@ -51,18 +51,30 @@ export default function ReportMaestri() {
       const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
 
       // Carica prenotazioni del mese per maestri
-      const prenotazioni = await db.getPrenotazioni({
-        data_from: startDate,
-        data_to: endDate
-      });
+      const { data: prenotazioni, error: prenotazioniError } = await supabase
+        .from('prenotazioni')
+        .select(`
+          id, socio_id, campo, data, ora_inizio, ora_fine, 
+          tipo_prenotazione, importo, stato_pagamento
+        `)
+        .gte('data', startDate)
+        .lte('data', endDate)
+        .not('socio_id', 'is', null);
+
+      if (prenotazioniError) throw prenotazioniError;
 
       // Carica tutti i soci per filtrare i maestri
-      const soci = await db.getSoci();
-      const maestri = soci.filter(socio => socio.tipo_socio === 'maestro');
+      const { data: soci, error: sociError } = await supabase
+        .from('soci')
+        .select('id, nome, cognome, telefono, email, tipo_socio')
+        .eq('tipo_socio', 'maestro')
+        .eq('attivo', true);
+
+      if (sociError) throw sociError;
 
       const maestriStatsMap = new Map<string, MaestroStats>();
 
-      maestri.forEach(maestro => {
+      (soci || []).forEach(maestro => {
         maestriStatsMap.set(maestro.id, {
           maestro,
           oreCorsi: 0,
@@ -75,7 +87,7 @@ export default function ReportMaestri() {
       });
 
       // Elabora le prenotazioni dei maestri
-      prenotazioni.forEach((prenotazione: Prenotazione) => {
+      (prenotazioni || []).forEach((prenotazione) => {
         if (prenotazione.socio_id && maestriStatsMap.has(prenotazione.socio_id)) {
           const stats = maestriStatsMap.get(prenotazione.socio_id)!;
           
@@ -86,13 +98,13 @@ export default function ReportMaestri() {
 
           if (prenotazione.tipo_prenotazione === 'corso') {
             stats.oreCorsi += ore;
-            stats.importoCorsi += prenotazione.importo;
+            stats.importoCorsi += Number(prenotazione.importo);
           } else if (prenotazione.tipo_prenotazione === 'lezione') {
             stats.oreLezioni += ore;
-            stats.importoLezioni += prenotazione.importo;
+            stats.importoLezioni += Number(prenotazione.importo);
           }
 
-          stats.importoTotale += prenotazione.importo;
+          stats.importoTotale += Number(prenotazione.importo);
           stats.prenotazioni.push(prenotazione);
           
           maestriStatsMap.set(prenotazione.socio_id, stats);
