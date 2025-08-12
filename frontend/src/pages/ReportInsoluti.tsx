@@ -284,6 +284,57 @@ const ReportInsoluti = () => {
         </Card>
       </div>
 
+      {/* Controlli ordinamento */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Opzioni di Ordinamento</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label>Ordina per:</Label>
+              <Button 
+                variant={sortBy === 'cognome' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('cognome')}
+              >
+                Nome Cliente
+              </Button>
+              <Button 
+                variant={sortBy === 'cronologico' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('cronologico')}
+              >
+                Data/Ora ⏰
+              </Button>
+              <Button 
+                variant={sortBy === 'importo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('importo')}
+              >
+                Importo
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant={sortOrder === 'asc' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortOrder('asc')}
+              >
+                Crescente ↑
+              </Button>
+              <Button 
+                variant={sortOrder === 'desc' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortOrder('desc')}
+              >
+                Decrescente ↓
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle>Ore in debito</CardTitle></CardHeader>
         <CardContent>
