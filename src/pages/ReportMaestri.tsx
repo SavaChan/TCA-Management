@@ -305,7 +305,7 @@ export default function ReportMaestri() {
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" title="Azioni"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               {p.stato_pagamento === 'da_pagare' ? (
                                 <DropdownMenuItem onClick={() => handleUpdatePagamento(p.id, 'pagato')}><CreditCard className="mr-2 h-4 w-4" />Segna come Pagato</DropdownMenuItem>
