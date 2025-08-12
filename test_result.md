@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Controlla che gli script non presentino errori e che la logica dei report insoluti, incassi e gestione maestri sia coerente e funzionante"
+user_problem_statement: "Controlla che gli script non presentino errori e che la logica dei report insoluti, incassi e gestione maestri sia coerente e funzionante. Aggiungi ordinamento cronologico al report insoluti e migliora le informazioni meteo nelle prenotazioni con temperatura e vento per Arenzano."
 
 backend:
   - task: "Backend API Status Check"
