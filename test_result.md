@@ -145,17 +145,29 @@ frontend:
           agent: "main"
           comment: "Fixed critical calculation errors: corrected previous year date range for proper annual comparison, fixed IVA calculation from 10% to proper 22%, improved error handling with detailed error messages"
 
-  - task: "Report Maestri - Logic Verification"
+  - task: "Report Insoluti - Ordinamento Cronologico"
     implemented: true
     working: true
-    file: "ReportMaestri.tsx"
+    file: "ReportInsoluti.tsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"  
-          comment: "Fixed database layer inconsistency: migrated from abstract db layer to direct Supabase calls for consistency, updated interface types, improved error handling, ensured proper data type conversions"
+          agent: "main"
+          comment: "Added chronological sorting option with data/hour ordering, updated UI with sorting controls including Nome Cliente, Data/Ora, and Importo options with ascending/descending controls"
+
+  - task: "Prenotazioni - Enhanced Weather Info"
+    implemented: true
+    working: true
+    file: "Prenotazioni.tsx, useWeather.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Enhanced weather display with temperature (max/min), wind speed/direction for Arenzano, updated API to include wind data, added Thermometer and Wind icons, improved table header layout"
 
 metadata:
   created_by: "main_agent"
