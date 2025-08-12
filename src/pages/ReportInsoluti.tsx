@@ -117,21 +117,26 @@ const ReportInsoluti = () => {
       c.totale += Number(p.importo);
       c.prenotazioni.push(p);
     });
-    return Array.from(map.values()).sort((a,b)=>`${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`));
+    return Array.from(map.values());
   };
 
-  /* Ordinamenti lista normale */
-  const sortedInsoluti = useMemo(()=> [...insoluti].sort((a,b)=>{
-    let va:any,vb:any;
-    switch(sortBy){
-      case 'cognome': va=getNomeCliente(a); vb=getNomeCliente(b); break;
-      case 'data': va=new Date(a.data); vb=new Date(b.data); break;
-      case 'tipo': va=a.tipo_prenotazione; vb=b.tipo_prenotazione; break;
-      case 'importo': va=a.importo; vb=b.importo; break;
-      default: return 0;
+  const sortedClienti = useMemo(() => {
+    const clienti = getClientiTotali();
+    if (sortBy === 'data') {
+      // Sort by the oldest booking date for each client
+      return clienti.sort((a, b) => {
+        const oldestA = a.prenotazioni.reduce((oldest, p) => new Date(p.data) < oldest ? new Date(p.data) : oldest, new Date(a.prenotazioni[0].data));
+        const oldestB = b.prenotazioni.reduce((oldest, p) => new Date(p.data) < oldest ? new Date(p.data) : oldest, new Date(b.prenotazioni[0].data));
+        return sortOrder === 'asc' ? oldestA.getTime() - oldestB.getTime() : oldestB.getTime() - oldestA.getTime();
+      });
     }
-    return sortOrder==='asc'? (va>vb?1:-1):(va<vb?1:-1);
-  }),[insoluti, sortBy, sortOrder]);
+    // Default to alphabetical sort by 'cognome'
+    return clienti.sort((a, b) => {
+      const nameA = `${a.cognome} ${a.nome}`;
+      const nameB = `${b.cognome} ${b.nome}`;
+      return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+  }, [insoluti, sortBy, sortOrder]);
 
   /* Export */
   const downloadExcel = () => {
@@ -231,11 +236,24 @@ const ReportInsoluti = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Ore in debito</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Ore in debito</CardTitle>
+          <div className="w-48">
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'cognome' | 'data')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ordina per..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cognome">Ordine Alfabetico</SelectItem>
+                <SelectItem value="data">Ordine Cronologico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
         <CardContent>
-          {insoluti.length===0
+          {sortedClienti.length === 0
             ? <p className="text-center py-4 text-muted-foreground">Nessun debito.</p>
-            : getClientiTotali().map(cli=>
+            : sortedClienti.map(cli =>
               <div key={`${cli.cognome}_${cli.nome}`} className="border rounded-md p-3 mb-3">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-bold">{cli.cognome} {cli.nome} – 
