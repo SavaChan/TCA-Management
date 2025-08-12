@@ -113,17 +113,37 @@ const ReportInsoluti = () => {
   };
 
   /* Ordinamenti lista normale */
-  const sortedInsoluti = useMemo(()=> [...insoluti].sort((a,b)=>{
-    let va:any,vb:any;
-    switch(sortBy){
-      case 'cognome': va=getNomeCliente(a); vb=getNomeCliente(b); break;
-      case 'data': va=new Date(a.data); vb=new Date(b.data); break;
-      case 'tipo': va=a.tipo_prenotazione; vb=b.tipo_prenotazione; break;
-      case 'importo': va=a.importo; vb=b.importo; break;
-      default: return 0;
+  const sortedInsoluti = useMemo(() => [...insoluti].sort((a, b) => {
+    let va: any, vb: any;
+    switch(sortBy) {
+      case 'cognome': 
+        va = getNomeCliente(a); 
+        vb = getNomeCliente(b); 
+        break;
+      case 'data': 
+        va = new Date(a.data); 
+        vb = new Date(b.data); 
+        break;
+      case 'tipo': 
+        va = a.tipo_prenotazione; 
+        vb = b.tipo_prenotazione; 
+        break;
+      case 'importo': 
+        va = a.importo; 
+        vb = b.importo; 
+        break;
+      case 'cronologico':
+        // Ordinamento cronologico: prima per data, poi per ora
+        const dateA = new Date(`${a.data}T${a.ora_inizio}`);
+        const dateB = new Date(`${b.data}T${b.ora_inizio}`);
+        va = dateA;
+        vb = dateB;
+        break;
+      default: 
+        return 0;
     }
-    return sortOrder==='asc'? (va>vb?1:-1):(va<vb?1:-1);
-  }),[insoluti, sortBy, sortOrder]);
+    return sortOrder === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  }), [insoluti, sortBy, sortOrder]);
 
   /* Export */
   const downloadExcel = () => {
