@@ -173,7 +173,9 @@ const ReportFinanziario = () => {
   const pagamentiOspiti = pagamentiGiornalieri.filter(p => p.prenotazioni?.ospiti);
   const incassoSoci = pagamentiSoci.reduce((sum, p) => sum + Number(p.importo), 0);
   const incassoOspiti = pagamentiOspiti.reduce((sum, p) => sum + Number(p.importo), 0);
-  const incassoOspitiNettoIVA = incassoOspiti / 1.11;
+  
+  // Calcolo IVA corretto per 22% (1.22 = 1 + 0.22)
+  const incassoOspitiNettoIVA = incassoOspiti / 1.22;
   const ivaOspiti = incassoOspiti - incassoOspitiNettoIVA;
 
   if (loading) return <div>Caricamento report...</div>;
