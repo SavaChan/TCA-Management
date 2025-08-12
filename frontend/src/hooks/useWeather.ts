@@ -69,6 +69,8 @@ export const useWeather = (latitude: number = 44.4056, longitude: number = 8.917
           temperature_max: Math.round(data.daily.temperature_2m_max[index]),
           temperature_min: Math.round(data.daily.temperature_2m_min[index]),
           precipitation_probability: data.daily.precipitation_probability_max[index] || 0,
+          wind_speed_max: Math.round(data.daily.wind_speed_10m_max[index] || 0),
+          wind_direction: data.daily.wind_direction_10m_dominant[index] || 0,
         }));
 
         setWeatherData(formattedData);
