@@ -9,13 +9,30 @@ import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 interface MaestroStats {
-  maestro: Socio;
+  maestro: {
+    id: string;
+    nome: string;
+    cognome: string;
+    telefono?: string;
+    email?: string;
+    tipo_socio: string;
+  };
   oreCorsi: number;
   oreLezioni: number;
   importoCorsi: number;
   importoLezioni: number;
   importoTotale: number;
-  prenotazioni: Prenotazione[];
+  prenotazioni: Array<{
+    id: string;
+    socio_id?: string;
+    campo: number;
+    data: string;
+    ora_inizio: string;
+    ora_fine: string;
+    tipo_prenotazione: string;
+    importo: number;
+    stato_pagamento: string;
+  }>;
 }
 
 export default function ReportMaestri() {
