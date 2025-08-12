@@ -203,6 +203,7 @@ export default function ReportMaestri() {
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="border rounded px-3 py-2"
+              aria-label="Seleziona mese"
             />
           </div>
           <Button onClick={exportToExcel} variant="outline">
@@ -270,7 +271,10 @@ export default function ReportMaestri() {
           maestriStats.map((stats) => (
             <Collapsible key={stats.maestro.id} className="border rounded-lg">
               <CollapsibleTrigger asChild>
-                <button className="w-full p-4 flex justify-between items-center bg-muted/20 hover:bg-muted/40 transition-colors text-left data-[state=open]:bg-muted/50">
+                <button
+                  className="w-full p-4 flex justify-between items-center bg-muted/20 hover:bg-muted/40 transition-colors text-left data-[state=open]:bg-muted/50"
+                  title={`Mostra/Nascondi dettagli per ${stats.maestro.nome} ${stats.maestro.cognome}`}
+                >
                   <div className="font-bold text-lg">{stats.maestro.nome} {stats.maestro.cognome}</div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground">Ore Totali: {(stats.oreCorsi + stats.oreLezioni).toFixed(1)}</span>
