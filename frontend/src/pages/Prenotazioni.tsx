@@ -39,7 +39,7 @@ const Prenotazioni = () => {
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   
   // Weather hook per Arenzano (44.4056, 8.9176)
-  const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate } = useWeather();
+  const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate, getWindDirection } = useWeather();
 
   useEffect(() => {
     loadPrenotazioni();
