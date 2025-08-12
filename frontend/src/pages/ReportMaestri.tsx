@@ -4,9 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, Download, User, BookOpen, Clock } from 'lucide-react';
-import { db } from '@/lib/database';
-import { Prenotazione, Socio } from '@/types/database';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 interface MaestroStats {
