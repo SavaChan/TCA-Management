@@ -49,7 +49,7 @@ interface ClienteTotale {
 const ReportInsoluti = () => {
   const [insoluti, setInsoluti] = useState<PrenotazioneInsoluta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'cognome' | 'data' | 'tipo' | 'importo' | 'cliente_totale'>('cognome');
+  const [sortBy, setSortBy] = useState<'cognome' | 'data' | 'tipo' | 'importo' | 'cliente_totale' | 'cronologico'>('cognome');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'lista' | 'clienti'>('lista');
 
