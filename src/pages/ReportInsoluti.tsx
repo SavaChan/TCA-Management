@@ -286,7 +286,7 @@ const ReportInsoluti = () => {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost"><MoreHorizontal className="w-4 h-4"/></Button>
+                              <Button size="sm" variant="ghost" title="Azioni"><MoreHorizontal className="w-4 h-4"/></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={()=>{ openPayModal([p]); setPaymentAmount(p.importo.toFixed(2)); }}>
