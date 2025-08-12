@@ -97,14 +97,6 @@ const ReportInsoluti = () => {
   const getTelefono = (p: PrenotazioneInsoluta) =>
     p.soci?.telefono ?? p.ospiti?.telefono ?? 'Non disponibile';
 
-  const getWeekNumber = (dstr: string) => {
-    const d = new Date(dstr);
-    const dayn = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayn);
-    const yearZero = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(( ( d.getTime() - yearZero.getTime() ) / 86400000 + 1 ) / 7);
-  };
-
   const getClientiTotali = (): ClienteTotale[] => {
     const map = new Map<string, ClienteTotale>();
     insoluti.forEach(p => {
