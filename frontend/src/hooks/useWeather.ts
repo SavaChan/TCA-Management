@@ -6,6 +6,8 @@ export interface WeatherData {
   temperature_max: number;
   temperature_min: number;
   precipitation_probability: number;
+  wind_speed_max: number;
+  wind_direction: number;
 }
 
 export interface WeatherIcon {
