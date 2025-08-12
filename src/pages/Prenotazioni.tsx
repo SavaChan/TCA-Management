@@ -311,11 +311,22 @@ const Prenotazioni = () => {
   };
 
   const getNomePrenotazione = (prenotazione: Prenotazione) => {
-    // Prima controlla se c'è un nome nelle note (per prenotazioni ricorrenti)
+    // Se è un corso, mostra "Corsi" e opzionalmente il nome del maestro
+    if (prenotazione.tipo_prenotazione === 'corso') {
+      if (prenotazione.note && prenotazione.note.includes(' - ')) {
+        const parts = prenotazione.note.split(' - ');
+        // Se c'è una nota aggiuntiva (es. nome maestro), la mostra
+        if (parts.length > 2 && parts[2].trim()) {
+          return `Corsi - ${parts[2].trim()}`;
+        }
+      }
+      return 'Corsi';
+    }
+
+    // Per prenotazioni ricorrenti (non corsi), estrae il nome del socio dalla nota
     if (prenotazione.note && prenotazione.note.includes(' - ')) {
       const parts = prenotazione.note.split(' - ');
       if (parts.length >= 2) {
-        // Estrae il nome dalla nota (formato: "tipo_corso - Nome Cognome - note_aggiuntive")
         const nomeFromNote = parts[1];
         if (nomeFromNote && nomeFromNote.trim()) {
           return nomeFromNote.trim();
@@ -323,7 +334,7 @@ const Prenotazioni = () => {
       }
     }
     
-    // Fallback al metodo normale
+    // Fallback per prenotazioni singole o se la nota non è formattata correttamente
     if (prenotazione.soci) {
       return `${prenotazione.soci.nome} ${prenotazione.soci.cognome}`;
     } else if (prenotazione.ospiti) {
@@ -561,16 +572,11 @@ const Prenotazioni = () => {
                                        className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)} ${isSlotContinuation(day, time, 1) ? 'border-t-0 rounded-t-none opacity-80' : ''}`}
                                        onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
                                      >
+                                      <div className="font-medium">
+                                        {getNomePrenotazione(prenotazione)}
+                                      </div>
                                       {!isSlotContinuation(day, time, 1) && (
-                                        <>
-                                          <div className="font-medium">
-                                            {getNomePrenotazione(prenotazione)}
-                                          </div>
-                                          <div>€{prenotazione.importo}</div>
-                                        </>
-                                      )}
-                                      {isSlotContinuation(day, time, 1) && (
-                                        <div className="text-xs opacity-60">│</div>
+                                        <div>€{prenotazione.importo}</div>
                                       )}
                                       {prenotazione.annullata_pioggia && (
                                         <div className="absolute -top-1 -right-1">
@@ -699,16 +705,11 @@ const Prenotazioni = () => {
                                        className={`p-1 rounded text-xs text-center cursor-pointer ${getStatoPagamentoColor(prenotazione)} ${isSlotContinuation(day, time, 2) ? 'border-t-0 rounded-t-none opacity-80' : ''}`}
                                        onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
                                      >
+                                      <div className="font-medium">
+                                        {getNomePrenotazione(prenotazione)}
+                                      </div>
                                       {!isSlotContinuation(day, time, 2) && (
-                                        <>
-                                          <div className="font-medium">
-                                            {getNomePrenotazione(prenotazione)}
-                                          </div>
-                                          <div>€{prenotazione.importo}</div>
-                                        </>
-                                      )}
-                                      {isSlotContinuation(day, time, 2) && (
-                                        <div className="text-xs opacity-60">│</div>
+                                        <div>€{prenotazione.importo}</div>
                                       )}
                                       {prenotazione.annullata_pioggia && (
                                         <div className="absolute -top-1 -right-1">
