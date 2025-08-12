@@ -101,3 +101,74 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Controlla che gli script non presentino errori e che la logica dei report insoluti, incassi e gestione maestri sia coerente e funzionante"
+
+backend:
+  - task: "Backend API Status Check"
+    implemented: true
+    working: "NA"  # Needs testing
+    file: "server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Basic FastAPI endpoints present, minimal functionality"
+
+frontend:
+  - task: "Report Insoluti - Logic Verification"
+    implemented: true
+    working: "NA"  # Needs verification
+    file: "ReportInsoluti.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Complex report with payment handling, needs verification of business logic"
+
+  - task: "Report Finanziario - Logic Verification" 
+    implemented: true
+    working: "NA"  # Needs verification
+    file: "ReportFinanziario.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Financial reports with complex calculations, needs verification"
+
+  - task: "Report Maestri - Logic Verification"
+    implemented: true
+    working: "NA"  # Needs verification
+    file: "ReportMaestri.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"  
+          comment: "Teacher management report using different database layer than other reports"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Report Insoluti - Logic Verification"
+    - "Report Finanziario - Logic Verification"
+    - "Report Maestri - Logic Verification"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Starting comprehensive code review for report logic verification. Found potential issues in ReportMaestri using different database layer. Will analyze all report logic for consistency and correctness."
