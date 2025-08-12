@@ -177,9 +177,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Report Insoluti - Logic Verification"
-    - "Report Finanziario - Logic Verification"
-    - "Report Maestri - Logic Verification"
+    - "Report Insoluti - Ordinamento Cronologico"
+    - "Prenotazioni - Enhanced Weather Info"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
