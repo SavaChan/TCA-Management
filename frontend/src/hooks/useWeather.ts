@@ -110,5 +110,6 @@ export const useWeather = (latitude: number = 44.4056, longitude: number = 8.917
     error,
     getWeatherIcon,
     getWeatherForDate,
+    getWindDirection,
   };
 };
