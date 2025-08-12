@@ -42,7 +42,6 @@ export default function ReportMaestri() {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
-  const { toast } = useToast();
 
   const loadMaestriData = async () => {
     try {
