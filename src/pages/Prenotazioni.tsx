@@ -539,10 +539,13 @@ const Prenotazioni = () => {
                       
                       return (
                         <th key={idx} className={`text-center p-2 font-medium min-w-24 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
-                          <div className="flex items-center justify-center space-x-1">
+                          <div className="flex items-center justify-center space-x-2">
                             <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
                             {!weatherLoading && weather && (
-                              <WeatherIcon size={16} className="text-blue-500" />
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <WeatherIcon size={16} className="text-blue-500" />
+                                <span className="text-xs">{weather.temperature_max}°C</span>
+                              </div>
                             )}
                           </div>
                           <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
@@ -672,10 +675,13 @@ const Prenotazioni = () => {
                       
                       return (
                         <th key={idx} className={`text-center p-2 font-medium min-w-24 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
-                          <div className="flex items-center justify-center space-x-1">
+                          <div className="flex items-center justify-center space-x-2">
                             <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
                             {!weatherLoading && weather && (
-                              <WeatherIcon size={16} className="text-blue-500" />
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <WeatherIcon size={16} className="text-blue-500" />
+                                <span className="text-xs">{weather.temperature_max}°C</span>
+                              </div>
                             )}
                           </div>
                           <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
