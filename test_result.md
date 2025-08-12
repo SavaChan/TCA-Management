@@ -185,6 +185,6 @@ test_plan:
 
 agent_communication:
     - agent: "main"
-      message: "✅ COMPLETED - Comprehensive code review and fixes for all reports. Backend verified and working. Fixed critical issues in ReportInsoluti (payment logic), ReportFinanziario (date calculations, IVA rate), and ReportMaestri (database consistency). All logic errors corrected and syntax verified."
+      message: "✅ COMPLETATO - Implementati tutti i miglioramenti richiesti: 1) Ordinamento cronologico nel Report Insoluti con controlli UI per data/ora, nome cliente e importo 2) Informazioni meteo estese nelle Prenotazioni con temperatura min/max, velocità e direzione vento per Arenzano. Tutti i bug dei report corretti precedentemente. Sistema completamente funzionale."
     - agent: "testing"
       message: "✅ BACKEND TESTING COMPLETE: All 5 backend tests passed successfully. Server starts correctly, API endpoints functional, MongoDB connection working, CORS configured properly, error handling working. Created comprehensive backend_test.py for future testing. Backend is ready for production use. No critical issues found."
