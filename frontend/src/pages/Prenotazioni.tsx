@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle, Thermometer, Wind } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
