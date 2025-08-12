@@ -695,21 +695,45 @@ const Prenotazioni = () => {
                       const isToday = day.toDateString() === new Date().toDateString();
                       
                       return (
-                        <th key={idx} className={`text-center p-2 font-medium min-w-24 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
-                          <div className="flex items-center justify-center space-x-1">
-                            <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                        <th key={idx} className={`text-center p-2 font-medium min-w-32 ${isToday ? 'bg-primary/10 border-primary/30 rounded-t-lg' : ''}`}>
+                          <div className="flex flex-col items-center space-y-1">
+                            {/* Nome giorno e data */}
+                            <div className="flex items-center justify-center space-x-1">
+                              <span className={isToday ? 'text-primary font-semibold' : ''}>{['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][idx]}</span>
+                              {!weatherLoading && weather && (
+                                <WeatherIcon size={16} className="text-blue-500" />
+                              )}
+                            </div>
+                            <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
+                              {day.getDate()}/{day.getMonth() + 1}
+                            </div>
+                            
+                            {/* Informazioni meteo aggiuntive */}
                             {!weatherLoading && weather && (
-                              <WeatherIcon size={16} className="text-blue-500" />
+                              <div className="text-xs space-y-1">
+                                {/* Temperatura */}
+                                <div className="flex items-center justify-center space-x-1 text-orange-600">
+                                  <Thermometer size={10} />
+                                  <span>{weather.temperature_max}°/{weather.temperature_min}°</span>
+                                </div>
+                                
+                                {/* Vento */}
+                                {weather.wind_speed_max > 5 && (
+                                  <div className="flex items-center justify-center space-x-1 text-blue-600">
+                                    <Wind size={10} />
+                                    <span>{weather.wind_speed_max}km/h {getWindDirection(weather.wind_direction)}</span>
+                                  </div>
+                                )}
+                                
+                                {/* Probabilità pioggia */}
+                                {weather.precipitation_probability > 30 && (
+                                  <div className="text-xs text-blue-600">
+                                    {weather.precipitation_probability}%
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <div className={`text-xs ${isToday ? 'text-primary/80' : 'text-muted-foreground'}`}>
-                            {day.getDate()}/{day.getMonth() + 1}
-                          </div>
-                          {!weatherLoading && weather && weather.precipitation_probability > 30 && (
-                            <div className="text-xs text-blue-600">
-                              {weather.precipitation_probability}%
-                            </div>
-                          )}
                         </th>
                       );
                     })}
