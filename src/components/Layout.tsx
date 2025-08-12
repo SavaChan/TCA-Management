@@ -12,7 +12,8 @@ import {
   UserPlus,
   AlertTriangle,
   Receipt,
-  GraduationCap
+  GraduationCap,
+  Repeat
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -87,6 +88,12 @@ const Layout = () => {
               <Link to="/prenotazioni">
                 <Calendar className="h-4 w-4" />
                 <span>Prenotazioni</span>
+              </Link>
+            </Button>
+            <Button asChild variant={location.pathname === '/ricorrenti' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/ricorrenti">
+                <Repeat className="h-4 w-4" />
+                <span>Ricorrenti</span>
               </Link>
             </Button>
             <Button asChild variant={location.pathname === '/report' ? 'default' : 'outline'} className="flex items-center space-x-2">

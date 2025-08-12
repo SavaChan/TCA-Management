@@ -15,6 +15,7 @@ import ReportInsoluti from "./pages/ReportInsoluti";
 import ReportFinanziario from "./pages/ReportFinanziario";
 import ReportOspitiIva from "./pages/ReportOspitiIva";
 import ReportMaestri from "./pages/ReportMaestri";
+import GestioneRicorrenti from "./pages/GestioneRicorrenti";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="soci" element={<Soci />} />
             <Route path="ospiti" element={<Ospiti />} />
             <Route path="prenotazioni" element={<Prenotazioni />} />
+            <Route path="ricorrenti" element={<GestioneRicorrenti />} />
             <Route path="tariffe" element={<Tariffe />} />
             <Route path="report" element={<Report />} />
             <Route path="insoluti" element={<ReportInsoluti />} />
