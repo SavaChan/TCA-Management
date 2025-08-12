@@ -289,9 +289,7 @@ const ReportInsoluti = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cli.prenotazioni.map(p=>{
-                      const sett= getWeekNumber(p.data);
-                      return(
+                    {cli.prenotazioni.map(p => (
                       <TableRow key={p.id}>
                         <TableCell>{p.data}</TableCell>
                         <TableCell>{p.ora_inizio}-{p.ora_fine}</TableCell>
@@ -311,8 +309,8 @@ const ReportInsoluti = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
-                      </TableRow>);
-                    })}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>)}
