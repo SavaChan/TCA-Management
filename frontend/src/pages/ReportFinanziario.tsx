@@ -98,9 +98,9 @@ const ReportFinanziario = () => {
         .lte('data_pagamento', endOfYear + 'T23:59:59')
         .order('data_pagamento', { ascending: false });
 
-      // Query per stesso periodo anno precedente
+      // Query per stesso periodo anno precedente (corretto)
       const startOfPreviousYear = new Date(previousYear, 0, 1).toISOString().split('T')[0];
-      const endOfPreviousYear = new Date(previousYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      const endOfPreviousYear = new Date(previousYear, 11, 31).toISOString().split('T')[0];
       
       const { data: dataAnnoScorso, error: errorAnnoScorso } = await supabase
         .from('pagamenti')
