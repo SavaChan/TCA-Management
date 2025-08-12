@@ -119,7 +119,14 @@ const ReportFinanziario = () => {
         .order('data_pagamento', { ascending: false });
 
       if (errorGiornalieri || errorMensili || errorAnnuali || errorAnnoScorso) {
-        throw new Error('Errore nel caricamento dei dati');
+        const errorDetails = [
+          errorGiornalieri && `Errore dati giornalieri: ${errorGiornalieri.message}`,
+          errorMensili && `Errore dati mensili: ${errorMensili.message}`,
+          errorAnnuali && `Errore dati annuali: ${errorAnnuali.message}`,
+          errorAnnoScorso && `Errore dati anno precedente: ${errorAnnoScorso.message}`
+        ].filter(Boolean).join('; ');
+        
+        throw new Error(errorDetails);
       }
 
       setPagamentiGiornalieri(dataGiornalieri || []);
