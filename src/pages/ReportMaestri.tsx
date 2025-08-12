@@ -93,7 +93,9 @@ export default function ReportMaestri() {
         }
       });
 
-      setMaestriStats(Array.from(maestriStatsMap.values()));
+      setMaestriStats(Array.from(maestriStatsMap.values()).filter(stats => 
+        stats.oreCorsi > 0 || stats.oreLezioni > 0
+      ));
     } catch (error) {
       console.error('Errore nel caricamento dati maestri:', error);
       toast({

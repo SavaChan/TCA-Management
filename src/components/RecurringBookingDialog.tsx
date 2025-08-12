@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, RefreshCw, CreditCard, Banknote } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Calendar, Clock, Users, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Socio } from '@/types/database';
@@ -35,8 +34,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
     dataFine: '',
     tipoCorso: 'corso_ragazzi',
     tariffaSpeciale: 20,
-    note: '',
-    paymentOption: 'later'
+    note: ''
   });
 
   useEffect(() => {
@@ -69,8 +67,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
         nome: '',
         cognome: '',
         telefono: '',
-        email: '',
-        paymentOption: 'later'
+        email: ''
       }));
     } else if (socioId) {
       const socio = soci.find(s => s.id === socioId);
@@ -139,38 +136,25 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
         return;
       }
 
-      // 2. Controlla la disponibilità degli slot in modo più robusto
-      const potentialDates = [...new Set(potentialSlots.map(s => s.data))];
+      // 2. Controlla la disponibilità degli slot
+      const orConditions = potentialSlots.map(slot =>
+        `and(data.eq.${slot.data},ora_inizio.eq.${slot.ora_inizio},campo.eq.${slot.campo})`
+      ).join(',');
+
       const { data: existingBookings, error: checkError } = await supabase
         .from('prenotazioni')
-        .select('data, ora_inizio, ora_fine')
-        .eq('campo', formData.campo)
-        .in('data', potentialDates);
+        .select('data, ora_inizio')
+        .or(orConditions);
 
       if (checkError) throw checkError;
 
-      const conflictingSlots: string[] = [];
-      if (existingBookings) {
-        for (const slot of potentialSlots) {
-          for (const existing of existingBookings) {
-            if (slot.data === existing.data) {
-              // Check for time overlap
-              if (slot.ora_inizio >= existing.ora_inizio && slot.ora_inizio < existing.ora_fine) {
-                conflictingSlots.push(
-                  `${new Date(slot.data).toLocaleDateString('it-IT')} ore ${slot.ora_inizio.substring(0,5)}`
-                );
-                // Found a conflict for this slot, no need to check other existing bookings for it
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (conflictingSlots.length > 0) {
+      if (existingBookings && existingBookings.length > 0) {
+        const conflictingSlots = existingBookings.map(b =>
+          `${new Date(b.data).toLocaleDateString('it-IT')} ore ${b.ora_inizio.substring(0,5)}`
+        ).join(', ');
         toast({
           title: "Orari non disponibili",
-          description: `I seguenti slot sono già occupati: ${conflictingSlots.join(', ')}`,
+          description: `I seguenti slot sono già occupati: ${conflictingSlots}`,
           variant: "destructive",
         });
         return;
@@ -196,7 +180,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
       }
 
       // 4. Crea gli oggetti prenotazione
-      const statoPagamento = formData.paymentOption === 'later' ? 'da_pagare' : 'pagato';
+      const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
       const noteRicorrente = `${formData.tipoCorso} - ${formData.nome} ${formData.cognome}${formData.note ? ' - ' + formData.note : ''}`;
       
       const prenotazioni = potentialSlots.map(slot => {
@@ -230,9 +214,9 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
           const pagamenti = prenotazioniInserite.map(p => ({
             prenotazione_id: p.id,
             importo: formData.tariffaSpeciale,
-            metodo_pagamento: `Pagamento anticipato ${formData.tipoCorso}`,
-            metodo_pagamento_tipo: formData.paymentOption as 'cash' | 'pos',
-            note: `Pagamento anticipato per serie ricorrente - ${formData.nome} ${formData.cognome}`
+            metodo_pagamento: `Corso ${formData.tipoCorso}`,
+            metodo_pagamento_tipo: 'corso',
+            note: `Pagamento anticipato corso ricorrente - ${formData.nome} ${formData.cognome}`
           }));
           await supabase.from('pagamenti').insert(pagamenti);
         }
@@ -246,7 +230,7 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
       onSuccess();
       onOpenChange(false);
       setSelectedSocioId('');
-      setFormData({ nome: '', cognome: '', telefono: '', email: '', campo: 1, giornoSettimana: 1, oraInizio: '09:00', durata: 1, dataInizio: '', dataFine: '', tipoCorso: 'corso_ragazzi', tariffaSpeciale: 20, note: '', paymentOption: 'later' });
+      setFormData({ nome: '', cognome: '', telefono: '', email: '', campo: 1, giornoSettimana: 1, oraInizio: '09:00', durata: 1, dataInizio: '', dataFine: '', tipoCorso: 'corso_ragazzi', tariffaSpeciale: 20, note: '' });
 
     } catch (error) {
       console.error('Error creating recurring bookings:', error);
@@ -465,36 +449,6 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Opzioni di Pagamento */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CreditCard className="h-4 w-4" />
-                <span>Opzioni di Pagamento</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                value={formData.paymentOption}
-                onValueChange={(value) => setFormData({ ...formData, paymentOption: value })}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="later" id="later" />
-                  <Label htmlFor="later">Paga più tardi (verrà aggiunto agli insoluti)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash">Paga subito (Contanti)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pos" id="pos" />
-                  <Label htmlFor="pos">Paga subito (POS)</Label>
-                </div>
-              </RadioGroup>
             </CardContent>
           </Card>
 
