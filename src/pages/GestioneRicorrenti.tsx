@@ -69,9 +69,9 @@ const GestioneRicorrenti = () => {
       const groupedByNote = data.reduce((acc, p) => {
         if (!p.note) return acc;
         if (!acc[p.note]) acc[p.note] = [];
-        acc[p.note].push(p);
+        acc[p.note].push(p as any);
         return acc;
-      }, {} as Record<string, (Prenotazione & { soci: Socio | null, ospiti: Ospite | null })[]>);
+      }, {} as Record<string, any[]>);
 
       const series = Object.values(groupedByNote).map((group): RicorrenteSeries => {
         const first = group[0];

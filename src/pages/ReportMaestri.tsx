@@ -345,6 +345,6 @@ export default function ReportMaestri() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

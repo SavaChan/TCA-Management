@@ -193,11 +193,11 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
           data: slot.data,
           ora_inizio: slot.ora_inizio,
           ora_fine: oraFine,
-          tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso),
-          tipo_campo: 'scoperto',
+          tipo_prenotazione: mapTipoPrenotazione(formData.tipoCorso) as 'corso' | 'lezione' | 'singolare',
+          tipo_campo: 'scoperto' as 'coperto' | 'scoperto',
           diurno: parseInt(ore) < 18,
           importo: formData.tariffaSpeciale,
-          stato_pagamento: statoPagamento,
+          stato_pagamento: statoPagamento as 'da_pagare' | 'pagato',
           note: noteRicorrente,
           annullata_pioggia: false
         };
