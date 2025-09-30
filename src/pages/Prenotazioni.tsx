@@ -2,15 +2,26 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle, Trash2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import PrenotazioneDialog from '@/components/PrenotazioneDialog';
 import PagamentoDialog from '@/components/PagamentoDialog';
+import BookingDetailDialog from '@/components/BookingDetailDialog';
 import { useWeather } from '@/hooks/useWeather';
 import RecurringBookingDialog from '@/components/RecurringBookingDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const Prenotazioni = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
@@ -18,6 +29,7 @@ const Prenotazioni = () => {
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pagamentoDialogOpen, setPagamentoDialogOpen] = useState(false);
+  const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
     data: string;
     oraInizio: string;
@@ -37,6 +49,8 @@ const Prenotazioni = () => {
     ora: string;
   } | null>(null);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [showDeleteWeekDialog, setShowDeleteWeekDialog] = useState(false);
+  const [isDeletingWeek, setIsDeletingWeek] = useState(false);
   
   // Weather hook per Arenzano (44.4056, 8.9176)
   const { weatherData, loading: weatherLoading, getWeatherIcon, getWeatherForDate } = useWeather();
@@ -159,15 +173,8 @@ const Prenotazioni = () => {
     const prenotazione = getPrenotazioneForSlot(day, time, campo);
     
     if (prenotazione) {
-      if (prenotazione.stato_pagamento === 'da_pagare') {
-        setSelectedPrenotazione(prenotazione);
-        setPagamentoDialogOpen(true);
-      } else {
-        toast({
-          title: "Prenotazione già pagata",
-          description: "Questa prenotazione è già stata saldata",
-        });
-      }
+      setSelectedPrenotazione(prenotazione);
+      setBookingDetailOpen(true);
       return;
     }
 
@@ -447,6 +454,40 @@ const Prenotazioni = () => {
     }
   };
 
+  const handleDeleteWeek = async () => {
+    setIsDeletingWeek(true);
+    try {
+      const weekDays = getWeekDays();
+      const startDate = weekDays[0].toISOString().split('T')[0];
+      const endDate = weekDays[6].toISOString().split('T')[0];
+
+      const { error } = await supabase
+        .from('prenotazioni')
+        .delete()
+        .gte('data', startDate)
+        .lte('data', endDate);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Prenotazioni cancellate',
+        description: 'Tutte le prenotazioni della settimana sono state cancellate.',
+      });
+
+      await loadPrenotazioni();
+    } catch (error) {
+      console.error('Error deleting week bookings:', error);
+      toast({
+        title: 'Errore',
+        description: 'Impossibile cancellare le prenotazioni.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingWeek(false);
+      setShowDeleteWeekDialog(false);
+    }
+  };
+
   const weekDays = getWeekDays();
   const timeSlots = getTimeSlots();
 
@@ -503,6 +544,13 @@ const Prenotazioni = () => {
             onClick={() => setShowRecurringDialog(true)}
           >
             📅 Prenotazioni Ricorrenti
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteWeekDialog(true)}
+          >
+            <Trash2 size={16} className="mr-2" />
+            Cancella Settimana
           </Button>
         </div>
       </div>
@@ -838,6 +886,17 @@ const Prenotazioni = () => {
         />
       )}
 
+      {/* Dialog dettaglio prenotazione */}
+      {selectedPrenotazione && (
+        <BookingDetailDialog
+          open={bookingDetailOpen}
+          onOpenChange={setBookingDetailOpen}
+          prenotazione={selectedPrenotazione}
+          onSuccess={handlePrenotazioneSuccess}
+          onOpenPayment={() => setPagamentoDialogOpen(true)}
+        />
+      )}
+
       {/* Dialog per pagamento */}
       {selectedPrenotazione && (
         <PagamentoDialog
@@ -856,6 +915,24 @@ const Prenotazioni = () => {
         onOpenChange={setShowRecurringDialog}
         onSuccess={handlePrenotazioneSuccess}
       />
+
+      {/* Dialog per cancellazione settimana */}
+      <AlertDialog open={showDeleteWeekDialog} onOpenChange={setShowDeleteWeekDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma cancellazione settimana</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler cancellare tutte le prenotazioni di questa settimana? Questa azione non può essere annullata e cancellerà {prenotazioni.length} prenotazioni.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteWeek} disabled={isDeletingWeek}>
+              {isDeletingWeek ? 'Cancellazione...' : 'Conferma Cancellazione'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
