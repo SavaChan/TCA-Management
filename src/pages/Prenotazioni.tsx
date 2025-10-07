@@ -496,7 +496,7 @@ const Prenotazioni = () => {
   return (
     <div className="space-y-6">
       {/* Header con nome club e logo */}
-      <div className="flex justify-between items-center border-b pb-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b pb-4 gap-4">
         <div className="flex items-center space-x-4">
           <input
             type="file"
@@ -507,7 +507,7 @@ const Prenotazioni = () => {
           />
           <label
             htmlFor="logo-upload"
-            className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+            className="w-16 h-16 flex-shrink-0 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
             title="Clicca per caricare il logo"
           >
             {logoUrl ? (
@@ -517,40 +517,42 @@ const Prenotazioni = () => {
             )}
           </label>
           <div>
-            <h1 className="text-3xl font-bold">Tennis Club Arenzano</h1>
-            <p className="text-muted-foreground">Sistema gestione prenotazioni campi</p>
+            <h1 className="text-2xl lg:text-3xl font-bold">Tennis Club Arenzano</h1>
+            <p className="text-sm text-muted-foreground">Sistema gestione prenotazioni campi</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => {
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <Button variant="outline" size="sm" onClick={() => {
             const prevWeek = new Date(selectedWeek);
             prevWeek.setDate(prevWeek.getDate() - 7);
             setSelectedWeek(prevWeek);
           }}>
-            ← Settimana Precedente
+            ← Prec
           </Button>
-          <Button onClick={() => setSelectedWeek(new Date())}>
+          <Button size="sm" onClick={() => setSelectedWeek(new Date())}>
             Oggi
           </Button>
-          <Button variant="outline" onClick={() => {
+          <Button variant="outline" size="sm" onClick={() => {
             const nextWeek = new Date(selectedWeek);
             nextWeek.setDate(nextWeek.getDate() + 7);
             setSelectedWeek(nextWeek);
           }}>
-            Settimana Successiva →
+            Succ →
           </Button>
           <Button 
             variant="outline" 
+            size="sm"
             onClick={() => setShowRecurringDialog(true)}
           >
-            📅 Prenotazioni Ricorrenti
+            📅 Ricorrenti
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={() => setShowDeleteWeekDialog(true)}
           >
             <Trash2 size={16} className="mr-2" />
-            Cancella Settimana
+            Cancella
           </Button>
         </div>
       </div>

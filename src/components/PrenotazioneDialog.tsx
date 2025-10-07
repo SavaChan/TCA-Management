@@ -324,7 +324,7 @@ const PrenotazioneDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             Nuova Prenotazione - Campo {campo}
@@ -372,16 +372,17 @@ const PrenotazioneDialog = ({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50">
+                  <Command className="bg-background">
                     <CommandInput 
                       placeholder="Cerca socio..." 
                       value={socioSearch}
                       onValueChange={setSocioSearch}
+                      className="bg-background"
                     />
                     <CommandEmpty>Nessun socio trovato.</CommandEmpty>
-                    <CommandList>
-                      <CommandGroup>
+                    <CommandList className="bg-background">
+                      <CommandGroup className="bg-background">
                         {filteredSoci.map((socio) => (
                           <CommandItem
                             key={socio.id}
@@ -390,6 +391,7 @@ const PrenotazioneDialog = ({
                               setSelectedSocio(socio);
                               setOpenSocioCombobox(false);
                             }}
+                            className="bg-background hover:bg-accent cursor-pointer"
                           >
                             <Check
                               className={cn(
@@ -432,16 +434,17 @@ const PrenotazioneDialog = ({
                       <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50">
+                    <Command className="bg-background">
                       <CommandInput 
                         placeholder="Cerca ospite..." 
                         value={ospiteSearch}
                         onValueChange={setOspiteSearch}
+                        className="bg-background"
                       />
                       <CommandEmpty>Nessun ospite trovato.</CommandEmpty>
-                      <CommandList>
-                        <CommandGroup>
+                      <CommandList className="bg-background">
+                        <CommandGroup className="bg-background">
                           {filteredOspiti.map((ospite) => (
                             <CommandItem
                               key={ospite.id}
@@ -450,6 +453,7 @@ const PrenotazioneDialog = ({
                                 setSelectedOspite(ospite);
                                 setOpenOspiteCombobox(false);
                               }}
+                              className="bg-background hover:bg-accent cursor-pointer"
                             >
                               <Check
                                 className={cn(
