@@ -293,9 +293,14 @@ const PrenotazioneDialog = ({
         description: "Prenotazione creata con successo",
       });
 
-      onSuccess();
+      // Chiudi il dialog prima di chiamare onSuccess per evitare problemi di rendering
       onOpenChange(false);
       resetForm();
+      
+      // Usa setTimeout per dare tempo al dialog di chiudersi completamente
+      setTimeout(() => {
+        onSuccess();
+      }, 100);
     } catch (error) {
       console.error('Error creating prenotazione:', error);
       toast({
