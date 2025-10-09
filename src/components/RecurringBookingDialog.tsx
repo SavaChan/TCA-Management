@@ -423,6 +423,9 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
                       <SelectItem value="1">1 ora</SelectItem>
                       <SelectItem value="2">2 ore</SelectItem>
                       <SelectItem value="3">3 ore</SelectItem>
+                      <SelectItem value="4">4 ore</SelectItem>
+                      <SelectItem value="5">5 ore</SelectItem>
+                      <SelectItem value="6">6 ore</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

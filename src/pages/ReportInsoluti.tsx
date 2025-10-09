@@ -155,11 +155,23 @@ const ReportInsoluti = () => {
   };
   const downloadPdf = () => {
     const doc = new jsPDF('p','mm','a4');
+    
+    doc.setFontSize(16);
+    doc.text('Report Insoluti - Tennis Club', 14, 15);
+    
     (doc as any).autoTable({
       head: [['Cliente','Data','Ora','Campo','Importo (€)']],
-      body: insoluti.map(i=>[getNomeCliente(i), i.data, `${i.ora_inizio}-${i.ora_fine}`, i.campo, `${i.importo}`]),
+      body: insoluti.map(i=>[getNomeCliente(i), i.data, `${i.ora_inizio}-${i.ora_fine}`, i.campo, `€${i.importo.toFixed(2)}`]),
+      startY: 20,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [220, 38, 38] }
     });
+    
     doc.save('insoluti.pdf');
+    toast({
+      title: "PDF Scaricato",
+      description: "Il report degli insoluti è stato scaricato con successo",
+    });
   };
   /* ---------- Gestione Pagamento ---------- */
   const openPayModal = (lst: PrenotazioneInsoluta[]) => {

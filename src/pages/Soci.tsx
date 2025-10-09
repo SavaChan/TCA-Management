@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit } from 'lucide-react';
+import { Plus, Search, Edit, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Socio } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import SocioDialog from '@/components/SocioDialog';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const Soci = () => {
   const [soci, setSoci] = useState<Socio[]>([]);
@@ -82,6 +84,34 @@ const Soci = () => {
     loadSoci();
   };
 
+  const downloadPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    doc.setFontSize(16);
+    doc.text('Elenco Soci Tennis Club', 14, 15);
+    
+    (doc as any).autoTable({
+      head: [['Nome', 'Cognome', 'Tipo', 'Telefono', 'Email', 'Classifica FITP']],
+      body: soci.map(socio => [
+        socio.nome,
+        socio.cognome,
+        getTipoSocioLabel(socio.tipo_socio),
+        socio.telefono || '-',
+        socio.email || '-',
+        socio.classifica_fitp || '-'
+      ]),
+      startY: 20,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+    
+    doc.save('elenco-soci.pdf');
+    toast({
+      title: "PDF Scaricato",
+      description: "L'elenco dei soci è stato scaricato con successo",
+    });
+  };
+
   if (loading) return <div>Caricamento soci...</div>;
 
   return (
@@ -93,10 +123,16 @@ const Soci = () => {
             Gestisci i soci del tennis club
           </p>
         </div>
-        <Button onClick={handleAddSocio}>
-          <Plus className="h-4 w-4 mr-2" />
-          Aggiungi Socio
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={downloadPDF}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Scarica PDF
+          </Button>
+          <Button onClick={handleAddSocio}>
+            <Plus className="h-4 w-4 mr-2" />
+            Aggiungi Socio
+          </Button>
+        </div>
       </div>
 
       <Card>
