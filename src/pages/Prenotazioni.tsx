@@ -255,24 +255,30 @@ const Prenotazioni = () => {
     );
   };
 
-  const handleAnnullaPioggia = async (prenotazione: Prenotazione) => {
+  const handleAnnullaPioggia = async (prenotazione: Prenotazione, specificHour?: string) => {
     try {
-      const { error } = await supabase
-        .from('prenotazioni')
-        .update({
-          annullata_pioggia: true,
-          data_annullamento_pioggia: new Date().toISOString()
-        })
-        .eq('id', prenotazione.id);
+      if (specificHour && isMultiHourBooking(prenotazione)) {
+        // Annulla solo l'ora specifica, splitta la prenotazione
+        await handleSplitForHourAction(prenotazione, specificHour, 'annulla');
+      } else {
+        // Annulla tutta la prenotazione
+        const { error } = await supabase
+          .from('prenotazioni')
+          .update({
+            annullata_pioggia: true,
+            data_annullamento_pioggia: new Date().toISOString()
+          })
+          .eq('id', prenotazione.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Prenotazione annullata",
-        description: "La prenotazione è stata annullata per pioggia",
-      });
+        toast({
+          title: "Prenotazione annullata",
+          description: "La prenotazione è stata annullata per pioggia",
+        });
 
-      await loadPrenotazioni();
+        await loadPrenotazioni();
+      }
     } catch (error) {
       console.error('Error cancelling for rain:', error);
       toast({
@@ -308,6 +314,154 @@ const Prenotazioni = () => {
         description: "Impossibile ripristinare la prenotazione",
         variant: "destructive",
       });
+    }
+  };
+
+  const isMultiHourBooking = (prenotazione: Prenotazione) => {
+    const start = parseInt(prenotazione.ora_inizio.substring(0, 2));
+    const end = parseInt(prenotazione.ora_fine.substring(0, 2));
+    return (end - start) > 1;
+  };
+
+  const handleSplitForHourAction = async (prenotazione: Prenotazione, specificHour: string, action: 'annulla' | 'elimina') => {
+    try {
+      const originalStart = prenotazione.ora_inizio;
+      const originalEnd = prenotazione.ora_fine;
+      const hourToHandle = parseInt(specificHour.substring(0, 2));
+      const splitStartHour = `${hourToHandle.toString().padStart(2, '0')}:00`;
+      const splitEndHour = `${(hourToHandle + 1).toString().padStart(2, '0')}:00`;
+      
+      // Elimina la prenotazione originale
+      const { error: deleteError } = await supabase
+        .from('prenotazioni')
+        .delete()
+        .eq('id', prenotazione.id);
+
+      if (deleteError) throw deleteError;
+
+      const bookingsToCreate = [];
+
+      // Prima parte (se esiste - prima dell'ora specifica)
+      if (splitStartHour > originalStart) {
+        bookingsToCreate.push({
+          socio_id: prenotazione.socio_id,
+          ospite_id: prenotazione.ospite_id,
+          campo: prenotazione.campo,
+          data: prenotazione.data,
+          ora_inizio: originalStart,
+          ora_fine: splitStartHour,
+          tipo_prenotazione: prenotazione.tipo_prenotazione,
+          tipo_campo: prenotazione.tipo_campo,
+          diurno: prenotazione.diurno,
+          importo: calculateProportionalImporto(prenotazione, originalStart, splitStartHour),
+          stato_pagamento: prenotazione.stato_pagamento,
+          note: prenotazione.note,
+        });
+      }
+
+      // Ora specifica (se annullamento per pioggia, viene ricreata come annullata)
+      if (action === 'annulla') {
+        bookingsToCreate.push({
+          socio_id: prenotazione.socio_id,
+          ospite_id: prenotazione.ospite_id,
+          campo: prenotazione.campo,
+          data: prenotazione.data,
+          ora_inizio: splitStartHour,
+          ora_fine: splitEndHour,
+          tipo_prenotazione: prenotazione.tipo_prenotazione,
+          tipo_campo: prenotazione.tipo_campo,
+          diurno: prenotazione.diurno,
+          importo: calculateProportionalImporto(prenotazione, splitStartHour, splitEndHour),
+          stato_pagamento: prenotazione.stato_pagamento,
+          note: prenotazione.note,
+          annullata_pioggia: true,
+          data_annullamento_pioggia: new Date().toISOString(),
+        });
+      }
+      // Se è 'elimina', non ricreiamo quest'ora
+
+      // Seconda parte (se esiste - dopo l'ora specifica)
+      if (splitEndHour < originalEnd) {
+        bookingsToCreate.push({
+          socio_id: prenotazione.socio_id,
+          ospite_id: prenotazione.ospite_id,
+          campo: prenotazione.campo,
+          data: prenotazione.data,
+          ora_inizio: splitEndHour,
+          ora_fine: originalEnd,
+          tipo_prenotazione: prenotazione.tipo_prenotazione,
+          tipo_campo: prenotazione.tipo_campo,
+          diurno: prenotazione.diurno,
+          importo: calculateProportionalImporto(prenotazione, splitEndHour, originalEnd),
+          stato_pagamento: prenotazione.stato_pagamento,
+          note: prenotazione.note,
+        });
+      }
+
+      if (bookingsToCreate.length > 0) {
+        const { error: insertError } = await supabase
+          .from('prenotazioni')
+          .insert(bookingsToCreate);
+
+        if (insertError) throw insertError;
+      }
+
+      toast({
+        title: action === 'annulla' ? "Ora annullata" : "Ora eliminata",
+        description: action === 'annulla' 
+          ? "L'ora selezionata è stata annullata per pioggia" 
+          : "L'ora selezionata è stata eliminata con successo",
+      });
+
+      await loadPrenotazioni();
+    } catch (error) {
+      console.error('Error handling hour action:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile completare l'operazione",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const calculateProportionalImporto = (prenotazione: Prenotazione, start: string, end: string) => {
+    const startHour = parseInt(start.substring(0, 2));
+    const endHour = parseInt(end.substring(0, 2));
+    const hours = endHour - startHour;
+    const originalStart = parseInt(prenotazione.ora_inizio.substring(0, 2));
+    const originalEnd = parseInt(prenotazione.ora_fine.substring(0, 2));
+    const originalHours = originalEnd - originalStart;
+    return (prenotazione.importo / originalHours) * hours;
+  };
+
+  const handleDeleteHour = async (prenotazione: Prenotazione, specificHour: string) => {
+    if (!isMultiHourBooking(prenotazione)) {
+      // Se è una singola ora, elimina tutta la prenotazione
+      try {
+        const { error } = await supabase
+          .from('prenotazioni')
+          .delete()
+          .eq('id', prenotazione.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Prenotazione eliminata",
+          description: "La prenotazione è stata eliminata con successo",
+        });
+
+        await loadPrenotazioni();
+      } catch (error) {
+        console.error('Error deleting booking:', error);
+        toast({
+          title: "Errore",
+          description: "Impossibile eliminare la prenotazione",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Se è multi-ora, splitta
+      await handleSplitForHourAction(prenotazione, specificHour, 'elimina');
     }
   };
 
@@ -638,18 +792,33 @@ const Prenotazioni = () => {
                                       )}
                                     </div>
                                    
-                                   {/* Menu contestuale per annullamento pioggia */}
-                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                   {/* Menu contestuale con icone */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+                                     {/* Elimina ora */}
+                                     <Button
+                                       size="sm"
+                                       variant="destructive"
+                                       className="h-6 w-6 p-0"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleDeleteHour(prenotazione, time);
+                                       }}
+                                       title="Elimina questa ora"
+                                     >
+                                       <Trash2 size={12} />
+                                     </Button>
+                                     
+                                     {/* Annulla per pioggia / Ripristina */}
                                      {!prenotazione.annullata_pioggia ? (
                                        <Button
                                          size="sm"
-                                         variant="destructive"
+                                         variant="secondary"
                                          className="h-6 w-6 p-0"
                                          onClick={(e) => {
                                            e.stopPropagation();
-                                           handleAnnullaPioggia(prenotazione);
+                                           handleAnnullaPioggia(prenotazione, time);
                                          }}
-                                         title="Annulla per pioggia"
+                                         title="Annulla questa ora per pioggia"
                                        >
                                          <CloudRain size={12} />
                                        </Button>
@@ -774,18 +943,33 @@ const Prenotazioni = () => {
                                       )}
                                     </div>
                                    
-                                   {/* Menu contestuale per annullamento pioggia */}
-                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                   {/* Menu contestuale con icone */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+                                     {/* Elimina ora */}
+                                     <Button
+                                       size="sm"
+                                       variant="destructive"
+                                       className="h-6 w-6 p-0"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleDeleteHour(prenotazione, time);
+                                       }}
+                                       title="Elimina questa ora"
+                                     >
+                                       <Trash2 size={12} />
+                                     </Button>
+                                     
+                                     {/* Annulla per pioggia / Ripristina */}
                                      {!prenotazione.annullata_pioggia ? (
                                        <Button
                                          size="sm"
-                                         variant="destructive"
+                                         variant="secondary"
                                          className="h-6 w-6 p-0"
                                          onClick={(e) => {
                                            e.stopPropagation();
-                                           handleAnnullaPioggia(prenotazione);
+                                           handleAnnullaPioggia(prenotazione, time);
                                          }}
-                                         title="Annulla per pioggia"
+                                         title="Annulla questa ora per pioggia"
                                        >
                                          <CloudRain size={12} />
                                        </Button>
