@@ -21,8 +21,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 
 interface PrenotazioneInsoluta {
   id: string;
@@ -140,36 +138,24 @@ const ReportInsoluti = () => {
 
   /* Export */
   const downloadExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      insoluti.map((i) => ({
-        Cliente: getNomeCliente(i),
-        Data: i.data,
-        Ora: `${i.ora_inizio}-${i.ora_fine}`,
-        Campo: i.campo,
-        Importo: i.importo,
-      }))
-    );
+    const data = insoluti.map((i) => ({
+      'Cliente': getNomeCliente(i),
+      'Telefono': getTelefono(i),
+      'Data': i.data,
+      'Ora Inizio': i.ora_inizio,
+      'Ora Fine': i.ora_fine,
+      'Campo': i.campo,
+      'Importo (€)': i.importo.toFixed(2),
+      'Tipo': i.tipo_prenotazione
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Insoluti');
-    XLSX.writeFile(wb, 'insoluti.xlsx');
-  };
-  const downloadPdf = () => {
-    const doc = new jsPDF('p','mm','a4');
+    XLSX.writeFile(wb, 'report-insoluti.xlsx');
     
-    doc.setFontSize(16);
-    doc.text('Report Insoluti - Tennis Club', 14, 15);
-    
-    (doc as any).autoTable({
-      head: [['Cliente','Data','Ora','Campo','Importo (€)']],
-      body: insoluti.map(i=>[getNomeCliente(i), i.data, `${i.ora_inizio}-${i.ora_fine}`, i.campo, `€${i.importo.toFixed(2)}`]),
-      startY: 20,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [220, 38, 38] }
-    });
-    
-    doc.save('insoluti.pdf');
     toast({
-      title: "PDF Scaricato",
+      title: "Excel Scaricato",
       description: "Il report degli insoluti è stato scaricato con successo",
     });
   };
@@ -224,8 +210,10 @@ const ReportInsoluti = () => {
           <p className="text-muted-foreground">Elenco delle prenotazioni non ancora saldate</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={downloadExcel}>Excel</Button>
-          <Button variant="outline" size="sm" onClick={downloadPdf}>PDF</Button>
+          <Button variant="outline" size="sm" onClick={downloadExcel}>
+            <FileText className="h-4 w-4 mr-2" />
+            Scarica Excel
+          </Button>
         </div>
       </div>
 
