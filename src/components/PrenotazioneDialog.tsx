@@ -9,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Socio, Ospite, TipoPrenotazione, TipoCampo } from '@/types/database';
+import { Socio, Ospite, TipoPrenotazione, TipoCampo, Tariffa } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -54,14 +54,16 @@ const PrenotazioneDialog = ({
   // Dati prenotazione
   const [tipoPrenotazione, setTipoPrenotazione] = useState<TipoPrenotazione>('singolare');
   const [importo, setImporto] = useState<number>(0);
+  const [tariffe, setTariffe] = useState<Tariffa[]>([]);
+  const [selectedTariffaId, setSelectedTariffaId] = useState<string>('manuale');
 
   useEffect(() => {
     if (open) {
       loadSoci();
       loadOspiti();
-      calculateTariff();
+      loadTariffe();
     }
-  }, [open, tipoPrenotazione]);
+  }, [open, tipoPrenotazione, tipoCliente]);
 
   const loadSoci = async () => {
     try {
@@ -92,31 +94,52 @@ const PrenotazioneDialog = ({
     }
   };
 
-  const calculateTariff = async () => {
+  const loadTariffe = async () => {
     try {
       const ora = parseInt(oraInizio.split(':')[0]);
       const isDiurno = ora >= 8 && ora < 20;
       const isSocio = tipoCliente === 'socio';
 
-      const { data: tariffaData, error } = await supabase
+      const { data: tariffeData, error } = await supabase
         .from('tariffe')
         .select('*')
         .eq('tipo_prenotazione', tipoPrenotazione)
-        .eq('tipo_campo', 'scoperto') // Assumo campo scoperto per ora
+        .eq('tipo_campo', 'scoperto')
         .eq('diurno', isDiurno)
         .eq('soci', isSocio)
         .eq('attivo', true)
-        .single();
+        .order('prezzo_ora', { ascending: true });
 
-      if (error || !tariffaData) {
-        // Se non trova tariffa specifica, usa una di default
-        setImporto(isSocio ? 15 : 20);
+      if (error) throw error;
+      
+      setTariffe(tariffeData || []);
+      
+      // Se c'è una tariffa disponibile, selezionala automaticamente
+      if (tariffeData && tariffeData.length > 0) {
+        setSelectedTariffaId(tariffeData[0].id);
+        setImporto(tariffeData[0].prezzo_ora);
       } else {
-        setImporto(tariffaData.prezzo_ora);
+        setSelectedTariffaId('manuale');
+        setImporto(isSocio ? 15 : 20);
       }
     } catch (error) {
-      console.error('Error calculating tariff:', error);
+      console.error('Error loading tariffe:', error);
+      setSelectedTariffaId('manuale');
       setImporto(15);
+    }
+  };
+
+  const handleTariffaChange = (tariffaId: string) => {
+    setSelectedTariffaId(tariffaId);
+    
+    if (tariffaId === 'manuale') {
+      // Mantieni l'importo corrente per modifica manuale
+      return;
+    }
+    
+    const tariffa = tariffe.find(t => t.id === tariffaId);
+    if (tariffa) {
+      setImporto(tariffa.prezzo_ora);
     }
   };
 
@@ -325,6 +348,8 @@ const PrenotazioneDialog = ({
     setOspiteEmail('');
     setTipoPrenotazione('singolare');
     setImporto(0);
+    setTariffe([]);
+    setSelectedTariffaId('manuale');
   };
 
   return (
@@ -559,17 +584,45 @@ const PrenotazioneDialog = ({
             </Select>
           </div>
 
-          {/* Importo */}
+          {/* Tariffa */}
           <div className="space-y-2">
-            <Label htmlFor="importo">Importo (€)</Label>
-            <Input
-              id="importo"
-              type="number"
-              step="0.01"
-              value={importo}
-              onChange={(e) => setImporto(parseFloat(e.target.value) || 0)}
-            />
+            <Label>Tariffa</Label>
+            <Select value={selectedTariffaId} onValueChange={handleTariffaChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {tariffe.map((tariffa) => (
+                  <SelectItem key={tariffa.id} value={tariffa.id}>
+                    {tariffa.nome} - €{tariffa.prezzo_ora.toFixed(2)}/ora
+                  </SelectItem>
+                ))}
+                <SelectItem value="manuale">Importo Manuale</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Importo - visibile solo se modalità manuale */}
+          {selectedTariffaId === 'manuale' && (
+            <div className="space-y-2">
+              <Label htmlFor="importo">Importo (€)</Label>
+              <Input
+                id="importo"
+                type="number"
+                step="0.01"
+                value={importo}
+                onChange={(e) => setImporto(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          )}
+
+          {/* Mostra importo anche quando è selezionata una tariffa */}
+          {selectedTariffaId !== 'manuale' && (
+            <div className="space-y-2">
+              <Label>Importo Totale</Label>
+              <div className="text-2xl font-bold">€{importo.toFixed(2)}</div>
+            </div>
+          )}
 
           {/* Pulsanti */}
           <div className="flex justify-end space-x-2 pt-4">
