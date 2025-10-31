@@ -530,20 +530,20 @@ const Prenotazioni = () => {
   const getStatoPagamentoColor = (prenotazione: Prenotazione) => {
     // Se annullata per pioggia, usa uno stile specifico
     if (prenotazione.annullata_pioggia) {
-      return 'bg-red-100/50 text-red-700 border border-red-300/50 opacity-60';
+      return 'bg-red-200 text-red-800 border border-red-400 opacity-70';
     }
     
     // Se è una prenotazione ricorrente (corso), usa un colore specifico
     if (prenotazione.note && (prenotazione.note.includes('corso_') || prenotazione.note.includes('abbonamento_'))) {
       if (prenotazione.stato_pagamento === 'pagato') {
-        return 'bg-purple-100/50 text-purple-700 border border-purple-300/50';
+        return 'bg-purple-200 text-purple-800 border border-purple-400';
       } else {
-        return 'bg-orange-100/50 text-orange-700 border border-orange-300/50';
+        return 'bg-orange-200 text-orange-800 border border-orange-400';
       }
     }
     
     if (prenotazione.stato_pagamento === 'da_pagare') {
-      return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
+      return 'bg-red-200 text-red-800 border border-red-400';
     }
     
     // Se è pagata, usa la cache dei pagamenti se disponibile
@@ -553,34 +553,16 @@ const Prenotazioni = () => {
     }
     
     // Default per prenotazioni pagate senza info sul tipo di pagamento
-    return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
+    return 'bg-green-500 text-green-900 border border-green-600';
   };
 
   const getStatoPagamentoColorWithPayment = async (prenotazione: Prenotazione) => {
     if (prenotazione.stato_pagamento === 'da_pagare') {
-      return 'bg-unpaid/30 text-unpaid border border-unpaid/40';
+      return 'bg-red-200 text-red-800 border border-red-400';
     }
     
-    // Se è pagata, controlla il tipo di pagamento
-    try {
-      const { data: pagamenti } = await supabase
-        .from('pagamenti')
-        .select('metodo_pagamento_tipo')
-        .eq('prenotazione_id', prenotazione.id);
-      
-      if (pagamenti && pagamenti.length > 0) {
-        const hasContanti = pagamenti.some(p => p.metodo_pagamento_tipo === 'contanti');
-        if (hasContanti) {
-          return 'bg-cash-payment/30 text-cash-payment border border-cash-payment/40';
-        } else {
-          return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
-        }
-      }
-    } catch (error) {
-      console.error('Error checking payment type:', error);
-    }
-    
-    return 'bg-pos-payment/30 text-pos-payment border border-pos-payment/40';
+    // Se è pagata, usa verde
+    return 'bg-green-500 text-green-900 border border-green-600';
   };
 
   const getWeekNumber = (date: Date) => {
@@ -839,18 +821,18 @@ const Prenotazioni = () => {
                                    </div>
                                  </div>
                                ) : (
-                                 <div 
-                                   className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
-                                     isSlotSelected(day, time, 1) 
-                                       ? 'bg-blue-200 text-blue-800 border-2 border-blue-400' 
-                                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
-                                   }`}
-                                   onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
-                                   onMouseEnter={() => handleMouseEnter(day, time, 1)}
-                                   onMouseUp={handleMouseUp}
-                                 >
-                                   Libero
-                                 </div>
+                                  <div 
+                                    className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
+                                      isSlotSelected(day, time, 1) 
+                                        ? 'bg-blue-300 text-blue-900 border-2 border-blue-500' 
+                                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                                    }`}
+                                    onMouseDown={(e) => handleMouseDown(day, time, 1, e)}
+                                    onMouseEnter={() => handleMouseEnter(day, time, 1)}
+                                    onMouseUp={handleMouseUp}
+                                  >
+                                    Libero
+                                  </div>
                                )}
                             </td>
                         );
@@ -990,18 +972,18 @@ const Prenotazioni = () => {
                                    </div>
                                  </div>
                                ) : (
-                                 <div 
-                                   className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
-                                     isSlotSelected(day, time, 2) 
-                                       ? 'bg-blue-200 text-blue-800 border-2 border-blue-400' 
-                                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
-                                   }`}
-                                   onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
-                                   onMouseEnter={() => handleMouseEnter(day, time, 2)}
-                                   onMouseUp={handleMouseUp}
-                                 >
-                                   Libero
-                                 </div>
+                                  <div 
+                                    className={`p-1 rounded text-xs text-center cursor-pointer transition-colors ${
+                                      isSlotSelected(day, time, 2) 
+                                        ? 'bg-blue-300 text-blue-900 border-2 border-blue-500' 
+                                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                                    }`}
+                                    onMouseDown={(e) => handleMouseDown(day, time, 2, e)}
+                                    onMouseEnter={() => handleMouseEnter(day, time, 2)}
+                                    onMouseUp={handleMouseUp}
+                                  >
+                                    Libero
+                                  </div>
                                )}
                             </td>
                         );
@@ -1027,27 +1009,27 @@ const Prenotazioni = () => {
               <span className="text-sm">Libero</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-100 rounded"></div>
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
               <span className="text-sm">Pagato</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-red-100 rounded"></div>
+              <div className="w-4 h-4 bg-red-400 rounded"></div>
               <span className="text-sm">Da Pagare</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-red-100/50 rounded border border-red-300"></div>
+              <div className="w-4 h-4 bg-red-300 rounded border border-red-500"></div>
               <span className="text-sm">Annullata per pioggia</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-200 rounded border-2 border-blue-400"></div>
+              <div className="w-4 h-4 bg-blue-300 rounded border-2 border-blue-500"></div>
               <span className="text-sm">Selezione multipla (Shift+Click e trascina)</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-purple-100 rounded border border-purple-300"></div>
+              <div className="w-4 h-4 bg-purple-400 rounded border border-purple-600"></div>
               <span className="text-sm">Corsi/Abbonamenti (pagati)</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-orange-100 rounded border border-orange-300"></div>
+              <div className="w-4 h-4 bg-orange-400 rounded border border-orange-600"></div>
               <span className="text-sm">Corsi/Abbonamenti (da pagare)</span>
             </div>
           </div>
