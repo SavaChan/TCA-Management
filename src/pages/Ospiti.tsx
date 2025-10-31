@@ -4,11 +4,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Users, Search, UserPlus, Phone, Mail, Edit } from 'lucide-react';
+import { Users, Search, UserPlus, Phone, Mail, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Ospite } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import OspiteDialog from '@/components/OspiteDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Ospiti = () => {
   const [ospiti, setOspiti] = useState<Ospite[]>([]);
@@ -16,6 +26,8 @@ const Ospiti = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOspite, setSelectedOspite] = useState<Ospite | undefined>(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ospiteToDelete, setOspiteToDelete] = useState<Ospite | null>(null);
 
   useEffect(() => {
     loadOspiti();
@@ -62,6 +74,41 @@ const Ospiti = () => {
     loadOspiti();
     setDialogOpen(false);
     setSelectedOspite(undefined);
+  };
+
+  const handleDeleteClick = (ospite: Ospite) => {
+    setOspiteToDelete(ospite);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!ospiteToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('ospiti')
+        .delete()
+        .eq('id', ospiteToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Successo",
+        description: "Ospite eliminato con successo",
+      });
+
+      loadOspiti();
+    } catch (error) {
+      console.error('Error deleting ospite:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile eliminare l'ospite",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setOspiteToDelete(null);
+    }
   };
 
   const getOspiteStats = () => {
@@ -215,14 +262,23 @@ const Ospiti = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditOspite(ospite)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Modifica
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditOspite(ospite)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Modifica
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteClick(ospite)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -238,6 +294,25 @@ const Ospiti = () => {
         ospite={selectedOspite}
         onSuccess={handleDialogSuccess}
       />
+
+      {/* Dialog conferma eliminazione */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma Eliminazione</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler eliminare {ospiteToDelete?.nome} {ospiteToDelete?.cognome}?
+              Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

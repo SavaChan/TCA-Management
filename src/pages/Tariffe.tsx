@@ -3,18 +3,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Plus } from 'lucide-react';
+import { Edit, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tariffa } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import TariffaDialog from '@/components/TariffaDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Tariffe = () => {
   const [tariffe, setTariffe] = useState<Tariffa[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTariffa, setSelectedTariffa] = useState<Tariffa | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tariffaToDelete, setTariffaToDelete] = useState<Tariffa | null>(null);
   const { profile } = useAuth();
 
   useEffect(() => {
@@ -71,6 +83,41 @@ const Tariffe = () => {
   const handleEditTariffa = (tariffa: Tariffa) => {
     setSelectedTariffa(tariffa);
     setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (tariffa: Tariffa) => {
+    setTariffaToDelete(tariffa);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!tariffaToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('tariffe')
+        .update({ attivo: false })
+        .eq('id', tariffaToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Successo",
+        description: "Tariffa eliminata con successo",
+      });
+
+      loadTariffe();
+    } catch (error) {
+      console.error('Error deleting tariffa:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile eliminare la tariffa",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setTariffaToDelete(null);
+    }
   };
 
   if (loading) return <div>Caricamento tariffe...</div>;
@@ -153,14 +200,23 @@ const Tariffe = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         {isAdmin && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditTariffa(tariffa)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Modifica
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditTariffa(tariffa)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Modifica
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeleteClick(tariffa)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -233,6 +289,25 @@ const Tariffe = () => {
         tariffa={selectedTariffa}
         onSuccess={loadTariffe}
       />
+
+      {/* Dialog conferma eliminazione */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma Eliminazione</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler eliminare la tariffa "{tariffaToDelete?.nome}"?
+              Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

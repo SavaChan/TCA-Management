@@ -4,12 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, FileDown } from 'lucide-react';
+import { Plus, Search, Edit, FileDown, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Socio } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import SocioDialog from '@/components/SocioDialog';
 import * as XLSX from 'xlsx';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Soci = () => {
   const [soci, setSoci] = useState<Socio[]>([]);
@@ -17,6 +27,8 @@ const Soci = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [socioToDelete, setSocioToDelete] = useState<Socio | null>(null);
 
   useEffect(() => {
     loadSoci();
@@ -81,6 +93,41 @@ const Soci = () => {
 
   const handleSocioSuccess = () => {
     loadSoci();
+  };
+
+  const handleDeleteClick = (socio: Socio) => {
+    setSocioToDelete(socio);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!socioToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('soci')
+        .update({ attivo: false })
+        .eq('id', socioToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Successo",
+        description: "Socio eliminato con successo",
+      });
+
+      loadSoci();
+    } catch (error) {
+      console.error('Error deleting socio:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile eliminare il socio",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setSocioToDelete(null);
+    }
   };
 
   const downloadExcel = () => {
@@ -197,14 +244,23 @@ const Soci = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditSocio(socio)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Modifica
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditSocio(socio)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifica
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleDeleteClick(socio)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -221,6 +277,25 @@ const Soci = () => {
         socio={selectedSocio}
         onSuccess={handleSocioSuccess}
       />
+
+      {/* Dialog conferma eliminazione */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma Eliminazione</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler eliminare {socioToDelete?.nome} {socioToDelete?.cognome}?
+              Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
