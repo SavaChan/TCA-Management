@@ -178,21 +178,31 @@ const Prenotazioni = () => {
       return;
     }
 
-    // Inizia selezione multipla solo se la cella è libera
-    if (event.shiftKey || event.ctrlKey) {
-      const slotKey = { campo, data: day.toISOString().split('T')[0], ora: time };
-      setIsSelecting(true);
-      setSelectionStart(slotKey);
-      setSelectedSlots([slotKey]);
-    } else {
-      // Clic normale per singola prenotazione
-      setSelectedSlot({
-        data: day.toISOString().split('T')[0],
-        oraInizio: time,
-        campo
-      });
-      setDialogOpen(true);
+    const slotKey = { campo, data: day.toISOString().split('T')[0], ora: time };
+
+    // Ctrl+click: aggiungi/rimuovi singolo slot dalla selezione
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      const isAlreadySelected = selectedSlots.some(
+        s => s.campo === campo && s.data === slotKey.data && s.ora === time
+      );
+      
+      if (isAlreadySelected) {
+        // Rimuovi slot dalla selezione
+        setSelectedSlots(selectedSlots.filter(
+          s => !(s.campo === campo && s.data === slotKey.data && s.ora === time)
+        ));
+      } else {
+        // Aggiungi slot alla selezione
+        setSelectedSlots([...selectedSlots, slotKey]);
+      }
+      return;
     }
+
+    // Click normale: inizia selezione tramite trascinamento
+    setIsSelecting(true);
+    setSelectionStart(slotKey);
+    setSelectedSlots([slotKey]);
   };
 
   const handleMouseEnter = (day: Date, time: string, campo: number) => {
@@ -225,26 +235,41 @@ const Prenotazioni = () => {
   };
 
   const handleMouseUp = () => {
-    if (isSelecting && selectedSlots.length > 1) {
-      // Apri dialog per prenotazione multipla con tutti gli slot selezionati
+    if (isSelecting) {
+      if (selectedSlots.length > 1) {
+        // Apri dialog per prenotazione multipla con tutti gli slot selezionati
+        setSelectedSlot({
+          data: selectedSlots[0].data,
+          oraInizio: selectedSlots[0].ora,
+          campo: selectedSlots[0].campo,
+          multipleSlots: selectedSlots // Passa tutti gli slot selezionati
+        } as any);
+        setDialogOpen(true);
+      } else if (selectedSlots.length === 1) {
+        // Se è solo uno slot, apri dialog per singola prenotazione
+        setSelectedSlot({
+          data: selectedSlots[0].data,
+          oraInizio: selectedSlots[0].ora,
+          campo: selectedSlots[0].campo
+        });
+        setDialogOpen(true);
+      }
+      
+      // Clear selection state dopo aver aperto il dialog
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectedSlots([]);
+    } else if (selectedSlots.length > 0) {
+      // Se ci sono slot selezionati con Ctrl (senza trascinamento), apri il dialog
       setSelectedSlot({
         data: selectedSlots[0].data,
         oraInizio: selectedSlots[0].ora,
         campo: selectedSlots[0].campo,
-        multipleSlots: selectedSlots // Passa tutti gli slot selezionati
+        multipleSlots: selectedSlots.length > 1 ? selectedSlots : undefined
       } as any);
       setDialogOpen(true);
-    }
-    
-    // Clear selection state immediately and properly
-    const clearSelection = () => {
-      setIsSelecting(false);
-      setSelectionStart(null);
       setSelectedSlots([]);
-    };
-    
-    // Use requestAnimationFrame for proper cleanup
-    requestAnimationFrame(clearSelection);
+    }
   };
 
   const isSlotSelected = (day: Date, time: string, campo: number) => {
@@ -466,7 +491,10 @@ const Prenotazioni = () => {
   };
 
   const handlePrenotazioneSuccess = async () => {
-    // Force refresh immediato delle prenotazioni
+    // Force refresh immediato delle prenotazioni e pulizia selezione
+    setSelectedSlots([]);
+    setIsSelecting(false);
+    setSelectionStart(null);
     await loadPrenotazioni();
     await loadPagamentiCache();
   };
@@ -1022,7 +1050,7 @@ const Prenotazioni = () => {
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-blue-300 rounded border-2 border-blue-500"></div>
-              <span className="text-sm">Selezione multipla (Shift+Click e trascina)</span>
+              <span className="text-sm">Selezione multipla (Ctrl+Click o trascina)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-purple-400 rounded border border-purple-600"></div>
@@ -1035,6 +1063,45 @@ const Prenotazioni = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pulsante floating per confermare selezione multipla con Ctrl */}
+      {selectedSlots.length > 0 && !isSelecting && (
+        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-4">
+          <Card className="shadow-lg border-2 border-primary">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <div className="font-semibold">{selectedSlots.length} slot selezionati</div>
+                  <div className="text-muted-foreground">Premi per creare prenotazione</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSlots([])}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setSelectedSlot({
+                        data: selectedSlots[0].data,
+                        oraInizio: selectedSlots[0].ora,
+                        campo: selectedSlots[0].campo,
+                        multipleSlots: selectedSlots.length > 1 ? selectedSlots : undefined
+                      } as any);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    Prenota
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Firma */}
       <div className="text-right">
