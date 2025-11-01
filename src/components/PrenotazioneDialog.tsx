@@ -411,7 +411,7 @@ const PrenotazioneDialog = ({
                       className="bg-background"
                     />
                     <CommandEmpty>Nessun socio trovato.</CommandEmpty>
-                    <CommandList className="bg-background">
+                    <CommandList className="bg-background max-h-[300px] overflow-y-auto">
                       <CommandGroup className="bg-background">
                         {filteredSoci.map((socio) => (
                           <CommandItem
@@ -473,7 +473,7 @@ const PrenotazioneDialog = ({
                         className="bg-background"
                       />
                       <CommandEmpty>Nessun ospite trovato.</CommandEmpty>
-                      <CommandList className="bg-background">
+                      <CommandList className="bg-background max-h-[300px] overflow-y-auto">
                         <CommandGroup className="bg-background">
                           {filteredOspiti.map((ospite) => (
                             <CommandItem
