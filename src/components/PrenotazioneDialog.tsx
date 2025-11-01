@@ -402,7 +402,7 @@ const PrenotazioneDialog = ({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50 pointer-events-auto">
                   <Command className="bg-background">
                     <CommandInput 
                       placeholder="Cerca socio..." 
@@ -411,7 +411,7 @@ const PrenotazioneDialog = ({
                       className="bg-background"
                     />
                     <CommandEmpty>Nessun socio trovato.</CommandEmpty>
-                    <CommandList className="bg-background max-h-[300px] overflow-y-auto">
+                    <CommandList className="bg-background pointer-events-auto">
                       <CommandGroup className="bg-background">
                         {filteredSoci.map((socio) => (
                           <CommandItem
@@ -464,7 +464,7 @@ const PrenotazioneDialog = ({
                       <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50">
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50 pointer-events-auto">
                     <Command className="bg-background">
                       <CommandInput 
                         placeholder="Cerca ospite..." 
@@ -473,7 +473,7 @@ const PrenotazioneDialog = ({
                         className="bg-background"
                       />
                       <CommandEmpty>Nessun ospite trovato.</CommandEmpty>
-                      <CommandList className="bg-background max-h-[300px] overflow-y-auto">
+                      <CommandList className="bg-background pointer-events-auto">
                         <CommandGroup className="bg-background">
                           {filteredOspiti.map((ospite) => (
                             <CommandItem
