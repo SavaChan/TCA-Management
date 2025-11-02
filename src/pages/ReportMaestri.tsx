@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Download, User, BookOpen, Clock, ChevronDown, MoreHorizontal, Trash2, CreditCard, Undo2 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CalendarIcon, Download, User, BookOpen, Clock, MoreHorizontal, Trash2, CreditCard, Undo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { db } from '@/lib/database';
@@ -165,23 +164,6 @@ export default function ReportMaestri() {
     XLSX.writeFile(wb, `report-maestri-${selectedMonth}.xlsx`);
   };
 
-  const getTotali = () => {
-    return maestriStats.reduce((acc, stats) => ({
-      oreCorsi: acc.oreCorsi + stats.oreCorsi,
-      oreLezioni: acc.oreLezioni + stats.oreLezioni,
-      importoCorsi: acc.importoCorsi + stats.importoCorsi,
-      importoLezioni: acc.importoLezioni + stats.importoLezioni,
-      importoTotale: acc.importoTotale + stats.importoTotale
-    }), {
-      oreCorsi: 0,
-      oreLezioni: 0,
-      importoCorsi: 0,
-      importoLezioni: 0,
-      importoTotale: 0
-    });
-  };
-
-  const totali = getTotali();
 
   if (loading) {
     return (
@@ -215,53 +197,7 @@ export default function ReportMaestri() {
         </div>
       </div>
 
-      {/* Cards riassunto */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maestri Attivi</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{maestriStats.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ore Corsi</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totali.oreCorsi.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground">€{totali.importoCorsi.toFixed(2)}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ore Lezioni</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totali.oreLezioni.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground">€{totali.importoLezioni.toFixed(2)}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totale Fatturato</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">€{totali.importoTotale.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{(totali.oreCorsi + totali.oreLezioni).toFixed(1)} ore</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Dettaglio per Maestro */}
+      {/* Report per Maestro */}
       <div className="space-y-4">
         {maestriStats.length === 0 ? (
           <Card>
@@ -271,22 +207,57 @@ export default function ReportMaestri() {
           </Card>
         ) : (
           maestriStats.map((stats) => (
-            <Collapsible key={stats.maestro.id} className="border rounded-lg">
-              <CollapsibleTrigger asChild>
-                <button
-                  className="w-full p-4 flex justify-between items-center bg-muted/20 hover:bg-muted/40 transition-colors text-left data-[state=open]:bg-muted/50"
-                  title={`Mostra/Nascondi dettagli per ${stats.maestro.nome} ${stats.maestro.cognome}`}
-                >
-                  <div className="font-bold text-lg">{stats.maestro.nome} {stats.maestro.cognome}</div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">Ore Totali: {(stats.oreCorsi + stats.oreLezioni).toFixed(1)}</span>
-                    <span className="text-sm font-semibold">Totale: €{stats.importoTotale.toFixed(2)}</span>
-                    <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
-                  </div>
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4">
-                <Table>
+            <Card key={stats.maestro.id} className="overflow-hidden">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  {stats.maestro.nome} {stats.maestro.cognome}
+                </CardTitle>
+                {stats.maestro.telefono && (
+                  <p className="text-sm text-muted-foreground">Tel: {stats.maestro.telefono}</p>
+                )}
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {/* Card riepilogo maestro */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Ore Corsi</CardTitle>
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.oreCorsi.toFixed(1)}</div>
+                      <p className="text-xs text-muted-foreground">€{stats.importoCorsi.toFixed(2)}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Ore Lezioni</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.oreLezioni.toFixed(1)}</div>
+                      <p className="text-xs text-muted-foreground">€{stats.importoLezioni.toFixed(2)}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Totale</CardTitle>
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">€{stats.importoTotale.toFixed(2)}</div>
+                      <p className="text-xs text-muted-foreground">{(stats.oreCorsi + stats.oreLezioni).toFixed(1)} ore</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Tabella dettaglio prenotazioni */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground">Dettaglio Prenotazioni</h3>
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
@@ -328,8 +299,9 @@ export default function ReportMaestri() {
                     ))}
                   </TableBody>
                 </Table>
-              </CollapsibleContent>
-            </Collapsible>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
