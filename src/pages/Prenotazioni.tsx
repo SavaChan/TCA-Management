@@ -671,7 +671,7 @@ const Prenotazioni = () => {
           />
           <label
             htmlFor="logo-upload"
-            className="w-16 h-16 flex-shrink-0 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+            className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
             title="Clicca per caricare il logo"
           >
             {logoUrl ? (
