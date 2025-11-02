@@ -56,7 +56,7 @@ const PrenotazioneDialog = ({
   const [importo, setImporto] = useState<number>(0);
   const [tariffe, setTariffe] = useState<Tariffa[]>([]);
   const [selectedTariffaId, setSelectedTariffaId] = useState<string>('manuale');
-
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (open) {
       loadSoci();
@@ -354,7 +354,7 @@ const PrenotazioneDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={(node) => setPortalContainer(node as unknown as HTMLElement | null)} className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             Nuova Prenotazione - Campo {campo}
@@ -402,7 +402,7 @@ const PrenotazioneDialog = ({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50" style={{ overflowY: 'auto', maxHeight: '300px' }}>
+                <PopoverContent container={portalContainer} className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50" style={{ overflowY: 'auto', maxHeight: '300px' }}>
                   <Command className="bg-background">
                     <CommandInput 
                       placeholder="Cerca socio..." 
@@ -464,7 +464,7 @@ const PrenotazioneDialog = ({
                       <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50" style={{ overflowY: 'auto', maxHeight: '300px' }}>
+                  <PopoverContent container={portalContainer} className="w-[var(--radix-popover-trigger-width)] p-0 bg-background border z-50" style={{ overflowY: 'auto', maxHeight: '300px' }}>
                     <Command className="bg-background">
                       <CommandInput 
                         placeholder="Cerca ospite..." 
