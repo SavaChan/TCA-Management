@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Euro, Banknote, CreditCard, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PagamentoData {
   id: string;
@@ -28,20 +32,22 @@ const ReportFinanziario = () => {
   const [pagamentiAnnuali, setPagamentiAnnuali] = useState<PagamentoData[]>([]);
   const [pagamentiAnnoScorso, setPagamentiAnnoScorso] = useState<PagamentoData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dateFrom, setDateFrom] = useState<Date>(new Date());
+  const [dateTo, setDateTo] = useState<Date>(new Date());
 
   useEffect(() => {
     loadAllPagamenti();
-  }, [selectedDate]);
+  }, [dateFrom, dateTo]);
 
   const loadAllPagamenti = async () => {
     try {
-      const currentDate = new Date(selectedDate);
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth();
+      const fromDateStr = format(dateFrom, 'yyyy-MM-dd');
+      const toDateStr = format(dateTo, 'yyyy-MM-dd');
+      const currentYear = dateTo.getFullYear();
+      const currentMonth = dateTo.getMonth();
       const previousYear = currentYear - 1;
 
-      // Query per pagamenti giornalieri
+      // Query per pagamenti nel periodo selezionato
       const { data: dataGiornalieri, error: errorGiornalieri } = await supabase
         .from('pagamenti')
         .select(`
@@ -54,8 +60,8 @@ const ReportFinanziario = () => {
             ospiti (nome, cognome)
           )
         `)
-        .gte('data_pagamento', selectedDate)
-        .lte('data_pagamento', selectedDate + 'T23:59:59')
+        .gte('data_pagamento', fromDateStr)
+        .lte('data_pagamento', toDateStr + 'T23:59:59')
         .order('data_pagamento', { ascending: false });
 
       // Query per pagamenti mensili (mese corrente)
@@ -186,27 +192,74 @@ const ReportFinanziario = () => {
           <div className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/20">
             <span className="text-xs text-muted-foreground">LOGO</span>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Tennis Club Arenzano</h1>
-            <p className="text-muted-foreground">Report Finanziario Giornaliero</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
+        <div>
+          <h1 className="text-3xl font-bold">Tennis Club Arenzano</h1>
+          <p className="text-muted-foreground">Report Finanziario</p>
         </div>
       </div>
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium">Da:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateFrom && "text-muted-foreground"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy") : <span>Seleziona data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={dateFrom}
+                onSelect={(date) => date && setDateFrom(date)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium">A:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateTo && "text-muted-foreground"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy") : <span>Seleziona data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={dateTo}
+                onSelect={(date) => date && setDateTo(date)}
+                initialFocus
+                disabled={(date) => date < dateFrom}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      </div>
 
-      {/* Summary Cards - Giornaliero */}
+      {/* Summary Cards - Periodo Selezionato */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cassa Giornaliera</CardTitle>
+            <CardTitle className="text-sm font-medium">Cassa Periodo</CardTitle>
             <Banknote className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -219,7 +272,7 @@ const ReportFinanziario = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">POS Giornaliero</CardTitle>
+            <CardTitle className="text-sm font-medium">POS Periodo</CardTitle>
             <CreditCard className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -232,7 +285,7 @@ const ReportFinanziario = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totale Giornaliero</CardTitle>
+            <CardTitle className="text-sm font-medium">Totale Periodo</CardTitle>
             <Euro className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
@@ -283,7 +336,7 @@ const ReportFinanziario = () => {
           <CardContent>
             <div className="text-xl font-bold">€{totaleAnnoScorso.toFixed(2)}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Stesso periodo {new Date(selectedDate).getFullYear() - 1}
+              Stesso periodo {dateTo.getFullYear() - 1}
             </div>
           </CardContent>
         </Card>
@@ -315,7 +368,7 @@ const ReportFinanziario = () => {
               <span>Pagamenti in Contanti</span>
             </CardTitle>
             <CardDescription>
-              Movimenti di cassa del {new Date(selectedDate).toLocaleDateString('it-IT')}
+              Dal {format(dateFrom, 'dd/MM/yyyy')} al {format(dateTo, 'dd/MM/yyyy')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -358,7 +411,7 @@ const ReportFinanziario = () => {
               <span>Pagamenti POS</span>
             </CardTitle>
             <CardDescription>
-              Movimenti elettronici del {new Date(selectedDate).toLocaleDateString('it-IT')}
+              Dal {format(dateFrom, 'dd/MM/yyyy')} al {format(dateTo, 'dd/MM/yyyy')}
             </CardDescription>
           </CardHeader>
           <CardContent>
