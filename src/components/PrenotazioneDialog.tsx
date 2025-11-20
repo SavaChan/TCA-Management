@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Search, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Socio, Ospite, TipoPrenotazione, TipoCampo, Tariffa } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import SocioDialog from './SocioDialog';
+import OspiteDialog from './OspiteDialog';
 
 interface PrenotazioneDialogProps {
   open: boolean;
@@ -57,6 +59,10 @@ const PrenotazioneDialog = ({
   const [tariffe, setTariffe] = useState<Tariffa[]>([]);
   const [selectedTariffaId, setSelectedTariffaId] = useState<string>('manuale');
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  
+  // Stati per dialog di creazione
+  const [showSocioDialog, setShowSocioDialog] = useState(false);
+  const [showOspiteDialog, setShowOspiteDialog] = useState(false);
   useEffect(() => {
     if (open) {
       loadSoci();
@@ -104,7 +110,6 @@ const PrenotazioneDialog = ({
         .from('tariffe')
         .select('*')
         .eq('tipo_prenotazione', tipoPrenotazione)
-        .eq('tipo_campo', 'scoperto')
         .eq('diurno', isDiurno)
         .eq('soci', isSocio)
         .eq('attivo', true)
@@ -413,6 +418,16 @@ const PrenotazioneDialog = ({
                     <CommandEmpty>Nessun socio trovato.</CommandEmpty>
                     <CommandList className="bg-background overflow-y-auto max-h-[250px]" style={{ overflowY: 'auto' }}>
                       <CommandGroup className="bg-background">
+                        <CommandItem
+                          onSelect={() => {
+                            setOpenSocioCombobox(false);
+                            setShowSocioDialog(true);
+                          }}
+                          className="bg-background hover:bg-accent cursor-pointer border-b mb-1 font-medium"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Crea nuovo socio
+                        </CommandItem>
                         {filteredSoci.map((socio) => (
                           <CommandItem
                             key={socio.id}
@@ -475,6 +490,16 @@ const PrenotazioneDialog = ({
                       <CommandEmpty>Nessun ospite trovato.</CommandEmpty>
                       <CommandList className="bg-background overflow-y-auto max-h-[250px]" style={{ overflowY: 'auto' }}>
                         <CommandGroup className="bg-background">
+                          <CommandItem
+                            onSelect={() => {
+                              setOpenOspiteCombobox(false);
+                              setShowOspiteDialog(true);
+                            }}
+                            className="bg-background hover:bg-accent cursor-pointer border-b mb-1 font-medium"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Crea nuovo ospite
+                          </CommandItem>
                           {filteredOspiti.map((ospite) => (
                             <CommandItem
                               key={ospite.id}
@@ -635,6 +660,26 @@ const PrenotazioneDialog = ({
           </div>
         </div>
       </DialogContent>
+
+      {/* Dialog per creare nuovo socio */}
+      <SocioDialog
+        open={showSocioDialog}
+        onOpenChange={setShowSocioDialog}
+        onSuccess={() => {
+          loadSoci();
+          setShowSocioDialog(false);
+        }}
+      />
+
+      {/* Dialog per creare nuovo ospite */}
+      <OspiteDialog
+        open={showOspiteDialog}
+        onOpenChange={setShowOspiteDialog}
+        onSuccess={() => {
+          loadOspiti();
+          setShowOspiteDialog(false);
+        }}
+      />
     </Dialog>
   );
 };
