@@ -69,7 +69,7 @@ const PrenotazioneDialog = ({
       loadOspiti();
       loadTariffe();
     }
-  }, [open, tipoPrenotazione, tipoCliente]);
+  }, [open]);
 
   const loadSoci = async () => {
     try {
@@ -102,35 +102,23 @@ const PrenotazioneDialog = ({
 
   const loadTariffe = async () => {
     try {
-      const ora = parseInt(oraInizio.split(':')[0]);
-      const isDiurno = ora >= 8 && ora < 20;
-      const isSocio = tipoCliente === 'socio';
-
       const { data: tariffeData, error } = await supabase
         .from('tariffe')
         .select('*')
-        .eq('tipo_prenotazione', tipoPrenotazione)
-        .eq('diurno', isDiurno)
-        .eq('soci', isSocio)
         .eq('attivo', true)
-        .order('prezzo_ora', { ascending: true });
+        .order('nome', { ascending: true });
 
       if (error) throw error;
       
       setTariffe(tariffeData || []);
       
-      // Se c'è una tariffa disponibile, selezionala automaticamente
-      if (tariffeData && tariffeData.length > 0) {
-        setSelectedTariffaId(tariffeData[0].id);
-        setImporto(tariffeData[0].prezzo_ora);
-      } else {
-        setSelectedTariffaId('manuale');
-        setImporto(isSocio ? 15 : 20);
-      }
+      // Non selezioniamo automaticamente una tariffa, lasciamo scegliere l'utente
+      setSelectedTariffaId('manuale');
+      setImporto(0);
     } catch (error) {
       console.error('Error loading tariffe:', error);
       setSelectedTariffaId('manuale');
-      setImporto(15);
+      setImporto(0);
     }
   };
 
@@ -617,12 +605,12 @@ const PrenotazioneDialog = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="manuale">Importo Manuale</SelectItem>
                 {tariffe.map((tariffa) => (
                   <SelectItem key={tariffa.id} value={tariffa.id}>
                     {tariffa.nome} - €{tariffa.prezzo_ora.toFixed(2)}/ora
                   </SelectItem>
                 ))}
-                <SelectItem value="manuale">Importo Manuale</SelectItem>
               </SelectContent>
             </Select>
           </div>
