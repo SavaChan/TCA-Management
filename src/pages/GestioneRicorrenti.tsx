@@ -56,24 +56,29 @@ const GestioneRicorrenti = () => {
   const loadRicorrenti = async () => {
     setLoading(true);
     try {
+      // Carica tutte le prenotazioni con note
       const { data, error } = await supabase
         .from('prenotazioni')
         .select(`*, soci (nome, cognome), ospiti (nome, cognome)`)
         .not('note', 'is', null)
-        .like('note', '% - %')
-        .order('note', { ascending: true })
         .order('data', { ascending: true });
 
       if (error) throw error;
 
-      const groupedByNote = data.reduce((acc, p) => {
+      // Filtra sul client le prenotazioni ricorrenti (note che contengono " - ")
+      const ricorrentiData = data.filter(p => p.note && p.note.includes(' - '));
+
+      const groupedByNote = ricorrentiData.reduce((acc, p) => {
         if (!p.note) return acc;
         if (!acc[p.note]) acc[p.note] = [];
         acc[p.note].push(p as any);
         return acc;
       }, {} as Record<string, any[]>);
 
-      const series = Object.values(groupedByNote).map((group): RicorrenteSeries => {
+      // Filtra solo i gruppi con più di una prenotazione (serie ricorrenti)
+      const filteredGroups = Object.values(groupedByNote).filter(group => group.length > 1);
+
+      const series = filteredGroups.map((group): RicorrenteSeries => {
         const first = group[0];
         const last = group[group.length - 1];
         const parts = first.note!.split(' - ');
