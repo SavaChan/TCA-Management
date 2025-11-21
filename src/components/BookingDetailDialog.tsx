@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Prenotazione, Socio, Ospite } from '@/types/database';
-import { Calendar, Clock, MapPin, Euro, User, FileText, Trash2, Edit, CreditCard, Scissors } from 'lucide-react';
+import { Calendar, Clock, MapPin, Euro, User, FileText, Trash2, Edit, CreditCard, Scissors, Repeat } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -45,6 +46,11 @@ const BookingDetailDialog = ({
   const [showSplitDialog, setShowSplitDialog] = useState(false);
   const [splitStartHour, setSplitStartHour] = useState<string>('');
   const [splitEndHour, setSplitEndHour] = useState<string>('');
+  const navigate = useNavigate();
+
+  const isRecurringBooking = () => {
+    return prenotazione.note && prenotazione.note.includes(' - ');
+  };
 
   const getNomeCliente = () => {
     if (prenotazione.soci) {
@@ -302,6 +308,18 @@ const BookingDetailDialog = ({
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
             <div className="flex gap-2">
+              {isRecurringBooking() && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/ricorrenti');
+                  }}
+                >
+                  <Repeat size={16} className="mr-2" />
+                  Gestisci Serie
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
