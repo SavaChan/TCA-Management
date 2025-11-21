@@ -8,6 +8,7 @@ import { Download, Euro, AlertCircle, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const Report = () => {
   const [prenotazioni, setPrenotazioni] = useState<Prenotazione[]>([]);
@@ -73,6 +74,30 @@ const Report = () => {
         const nomeB = `${b.soci?.cognome} ${b.soci?.nome}`;
         return nomeA.localeCompare(nomeB);
       });
+  };
+
+  const exportToExcel = () => {
+    const data = daPagareReport.map(p => ({
+      'Socio': `${p.soci?.cognome} ${p.soci?.nome}`,
+      'Telefono': p.soci?.telefono || '-',
+      'Data': new Date(p.data).toLocaleDateString('it-IT'),
+      'Orario': `${p.ora_inizio} - ${p.ora_fine}`,
+      'Campo': `Campo ${p.campo}`,
+      'Tipo': p.tipo_prenotazione,
+      'Importo': `€${p.importo.toFixed(2)}`
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Da Pagare');
+    
+    const fileName = `report_da_pagare_${months[selectedMonth]}_${selectedYear}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    toast({
+      title: "Export completato",
+      description: "Il file Excel è stato scaricato con successo",
+    });
   };
 
   const months = [
@@ -210,9 +235,9 @@ const Report = () => {
                 Elenco dettagliato ordinato alfabeticamente per cognome
               </CardDescription>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={exportToExcel}>
               <Download className="h-4 w-4 mr-2" />
-              Esporta PDF
+              Esporta Excel
             </Button>
           </div>
         </CardHeader>
