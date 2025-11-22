@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Download, User, BookOpen, Clock, MoreHorizontal, Trash2, CreditCard, Undo2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CalendarIcon, Download, User, BookOpen, Clock, MoreHorizontal, Trash2, CreditCard, Undo2, Euro, TrendingUp } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { db } from '@/lib/database';
@@ -24,25 +26,38 @@ interface MaestroStats {
   importoCorsi: number;
   importoLezioni: number;
   importoTotale: number;
+  importoCorsiPagato: number;
+  importoLezioniPagato: number;
+  importoCorsiDaPagare: number;
+  importoLezioniDaPagare: number;
   prenotazioni: PrenotazioneConCliente[];
 }
 
 export default function ReportMaestri() {
   const [maestriStats, setMaestriStats] = useState<MaestroStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear().toString());
   const { toast } = useToast();
   const [dialogState, setDialogState] = useState<{ open: boolean, bookingId: string | null }>({ open: false, bookingId: null });
 
   const loadMaestriData = async () => {
     try {
       setLoading(true);
-      const [year, month] = selectedMonth.split('-');
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+      let startDate: string, endDate: string;
+      
+      if (viewMode === 'month') {
+        const [year, month] = selectedMonth.split('-');
+        startDate = `${year}-${month}-01`;
+        endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+      } else {
+        startDate = `${selectedYear}-01-01`;
+        endDate = `${selectedYear}-12-31`;
+      }
 
       // Carica tutti i dati necessari in parallelo
       const [prenotazioni, allSoci, allOspiti] = await Promise.all([
@@ -59,7 +74,16 @@ export default function ReportMaestri() {
       maestri.forEach(maestro => {
         maestriStatsMap.set(maestro.id, {
           maestro,
-          oreCorsi: 0, oreLezioni: 0, importoCorsi: 0, importoLezioni: 0, importoTotale: 0, prenotazioni: []
+          oreCorsi: 0,
+          oreLezioni: 0,
+          importoCorsi: 0,
+          importoLezioni: 0,
+          importoTotale: 0,
+          importoCorsiPagato: 0,
+          importoLezioniPagato: 0,
+          importoCorsiDaPagare: 0,
+          importoLezioniDaPagare: 0,
+          prenotazioni: []
         });
       });
 
@@ -78,9 +102,19 @@ export default function ReportMaestri() {
           if (p.tipo_prenotazione === 'corso') {
             stats.oreCorsi += ore;
             stats.importoCorsi += p.importo;
+            if (p.stato_pagamento === 'pagato') {
+              stats.importoCorsiPagato += p.importo;
+            } else {
+              stats.importoCorsiDaPagare += p.importo;
+            }
           } else if (p.tipo_prenotazione === 'lezione') {
             stats.oreLezioni += ore;
             stats.importoLezioni += p.importo;
+            if (p.stato_pagamento === 'pagato') {
+              stats.importoLezioniPagato += p.importo;
+            } else {
+              stats.importoLezioniDaPagare += p.importo;
+            }
           }
           stats.importoTotale += p.importo;
           
@@ -109,7 +143,7 @@ export default function ReportMaestri() {
 
   useEffect(() => {
     loadMaestriData();
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedYear, viewMode]);
 
   const handleUpdatePagamento = async (bookingId: string, newStatus: 'pagato' | 'da_pagare') => {
     try {
@@ -150,8 +184,12 @@ export default function ReportMaestri() {
       'Maestro': `${stats.maestro.nome} ${stats.maestro.cognome}`,
       'Ore Corsi': stats.oreCorsi,
       'Importo Corsi (€)': stats.importoCorsi.toFixed(2),
+      'Corsi Pagato (€)': stats.importoCorsiPagato.toFixed(2),
+      'Corsi Da Pagare (€)': stats.importoCorsiDaPagare.toFixed(2),
       'Ore Lezioni': stats.oreLezioni,
       'Importo Lezioni (€)': stats.importoLezioni.toFixed(2),
+      'Lezioni Pagato (€)': stats.importoLezioniPagato.toFixed(2),
+      'Lezioni Da Pagare (€)': stats.importoLezioniDaPagare.toFixed(2),
       'Ore Totali': (stats.oreCorsi + stats.oreLezioni).toFixed(1),
       'Importo Totale (€)': stats.importoTotale.toFixed(2),
       'Telefono': stats.maestro.telefono || '',
@@ -161,7 +199,21 @@ export default function ReportMaestri() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Report Maestri');
-    XLSX.writeFile(wb, `report-maestri-${selectedMonth}.xlsx`);
+    const fileName = viewMode === 'month' ? `report-maestri-${selectedMonth}.xlsx` : `report-maestri-${selectedYear}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
+  const getPeriodLabel = () => {
+    if (viewMode === 'month') {
+      const [year, month] = selectedMonth.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+    }
+    return selectedYear;
+  };
+
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => currentYear - i);
   };
 
 
@@ -177,19 +229,43 @@ export default function ReportMaestri() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Report Maestri</h1>
-        <div className="flex gap-4 items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Report Maestri</h1>
+          <p className="text-muted-foreground mt-1">Periodo: {getPeriodLabel()}</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'month' | 'year')}>
+            <TabsList>
+              <TabsTrigger value="month">Mese</TabsTrigger>
+              <TabsTrigger value="year">Anno</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="border rounded px-3 py-2"
-              aria-label="Seleziona mese"
-            />
+            {viewMode === 'month' ? (
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border rounded px-3 py-2"
+                aria-label="Seleziona mese"
+              />
+            ) : (
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getYearOptions().map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+          
           <Button onClick={exportToExcel} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Esporta Excel
@@ -219,37 +295,69 @@ export default function ReportMaestri() {
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Card riepilogo maestro */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Ore Corsi</CardTitle>
+                      <CardTitle className="text-sm font-medium">Corsi</CardTitle>
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.oreCorsi.toFixed(1)}</div>
+                      <div className="text-2xl font-bold">{stats.oreCorsi.toFixed(1)}h</div>
                       <p className="text-xs text-muted-foreground">€{stats.importoCorsi.toFixed(2)}</p>
+                      <div className="mt-2 flex gap-2 text-xs">
+                        <Badge variant="default" className="bg-green-600">€{stats.importoCorsiPagato.toFixed(2)}</Badge>
+                        {stats.importoCorsiDaPagare > 0 && (
+                          <Badge variant="destructive">€{stats.importoCorsiDaPagare.toFixed(2)}</Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Ore Lezioni</CardTitle>
+                      <CardTitle className="text-sm font-medium">Lezioni</CardTitle>
                       <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.oreLezioni.toFixed(1)}</div>
+                      <div className="text-2xl font-bold">{stats.oreLezioni.toFixed(1)}h</div>
                       <p className="text-xs text-muted-foreground">€{stats.importoLezioni.toFixed(2)}</p>
+                      <div className="mt-2 flex gap-2 text-xs">
+                        <Badge variant="default" className="bg-green-600">€{stats.importoLezioniPagato.toFixed(2)}</Badge>
+                        {stats.importoLezioniDaPagare > 0 && (
+                          <Badge variant="destructive">€{stats.importoLezioniDaPagare.toFixed(2)}</Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Totale</CardTitle>
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium">Totale Ore</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{(stats.oreCorsi + stats.oreLezioni).toFixed(1)}</div>
+                      <p className="text-xs text-muted-foreground">ore lavorate</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Totale Incasso</CardTitle>
+                      <Euro className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">€{stats.importoTotale.toFixed(2)}</div>
-                      <p className="text-xs text-muted-foreground">{(stats.oreCorsi + stats.oreLezioni).toFixed(1)} ore</p>
+                      <div className="mt-2 flex gap-2 text-xs">
+                        <Badge variant="default" className="bg-green-600">
+                          €{(stats.importoCorsiPagato + stats.importoLezioniPagato).toFixed(2)}
+                        </Badge>
+                        {(stats.importoCorsiDaPagare + stats.importoLezioniDaPagare) > 0 && (
+                          <Badge variant="destructive">
+                            €{(stats.importoCorsiDaPagare + stats.importoLezioniDaPagare).toFixed(2)}
+                          </Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
