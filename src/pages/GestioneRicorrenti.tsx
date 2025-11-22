@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Prenotazione, Socio, Ospite } from '@/types/database';
-import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard } from 'lucide-react';
+import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, ChevronDown, ChevronUp, Euro } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,9 @@ interface RicorrenteSeries {
   isCompletelyPaid: boolean;
   isUnpaid: boolean;
   noteAggiuntive: string;
+  importoTotale: number;
+  importoPagato: number;
+  importoDaPagare: number;
   prenotazioni: (Prenotazione & { soci: Socio | null, ospiti: Ospite | null })[];
 }
 
@@ -41,6 +46,7 @@ const GestioneRicorrenti = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedSeries, setSelectedSeries] = useState<RicorrenteSeries | null>(null);
+  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadRicorrenti();
@@ -83,6 +89,8 @@ const GestioneRicorrenti = () => {
         const last = group[group.length - 1];
         const parts = first.note!.split(' - ');
         const totalPaid = group.filter(p => p.stato_pagamento === 'pagato').length;
+        const importoTotale = group.reduce((sum, p) => sum + Number(p.importo), 0);
+        const importoPagato = group.filter(p => p.stato_pagamento === 'pagato').reduce((sum, p) => sum + Number(p.importo), 0);
 
         return {
           id: first.note!,
@@ -98,6 +106,9 @@ const GestioneRicorrenti = () => {
           isCompletelyPaid: totalPaid === group.length,
           isUnpaid: totalPaid === 0,
           noteAggiuntive: parts.length > 2 ? parts[2] : '',
+          importoTotale,
+          importoPagato,
+          importoDaPagare: importoTotale - importoPagato,
           prenotazioni: group,
         };
       }).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -167,12 +178,28 @@ const GestioneRicorrenti = () => {
 
   const getStatusBadge = (series: RicorrenteSeries) => {
     if (series.isCompletelyPaid) {
-      return <Badge variant="success" className="flex items-center gap-1"><CheckCircle size={14} /> Saldato</Badge>;
+      return <Badge variant="default" className="flex items-center gap-1 bg-green-600"><CheckCircle size={14} /> Saldato</Badge>;
     }
     if (series.isUnpaid) {
       return <Badge variant="destructive" className="flex items-center gap-1"><XCircle size={14} /> Da Pagare</Badge>;
     }
     return <Badge variant="secondary" className="flex items-center gap-1"><AlertCircle size={14} /> Parziale ({series.lezioniPagate}/{series.numeroLezioni})</Badge>;
+  };
+
+  const toggleExpanded = (seriesId: string) => {
+    setExpandedSeries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(seriesId)) {
+        newSet.delete(seriesId);
+      } else {
+        newSet.add(seriesId);
+      }
+      return newSet;
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
   if (loading) {
@@ -192,29 +219,117 @@ const GestioneRicorrenti = () => {
         {ricorrenti.length === 0 ? (
           <Card><CardContent className="p-8 text-center text-muted-foreground">Nessuna prenotazione ricorrente trovata.</CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {ricorrenti.map((series) => (
-              <Card key={series.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{series.nome}</CardTitle>
-                      <CardDescription>{series.tipo.replace(/_/g, ' ')}</CardDescription>
+              <Collapsible key={series.id} open={expandedSeries.has(series.id)} onOpenChange={() => toggleExpanded(series.id)}>
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <CardTitle className="text-xl">{series.nome}</CardTitle>
+                          {getStatusBadge(series)}
+                        </div>
+                        <CardDescription className="mt-1">{series.tipo.replace(/_/g, ' ').toUpperCase()}</CardDescription>
+                      </div>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          {expandedSeries.has(series.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </Button>
+                      </CollapsibleTrigger>
                     </div>
-                    {getStatusBadge(series)}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-3">
-                  <div className="flex items-center text-sm"><Calendar size={14} className="mr-2 text-muted-foreground" /><span>{series.giorno}, {series.dataInizio} - {series.dataFine}</span></div>
-                  <div className="flex items-center text-sm"><Clock size={14} className="mr-2 text-muted-foreground" /><span>Ore {series.oraInizio}</span></div>
-                  <div className="flex items-center text-sm"><Hash size={14} className="mr-2 text-muted-foreground" /><span>Campo {series.campo}</span></div>
-                  {series.noteAggiuntive && (<div className="text-sm italic text-muted-foreground pt-2">Nota: {series.noteAggiuntive}</div>)}
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => { setSelectedSeries(series); setShowCancelDialog(true); }} disabled={isCanceling}><Trash2 size={14} className="mr-1" /> Annulla Serie</Button>
-                  <Button size="sm" onClick={() => handlePaySeries(series)} disabled={isPaying || series.isCompletelyPaid}><CreditCard size={14} className="mr-1" /> Registra Pagamento</Button>
-                </CardFooter>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="flex items-center text-sm">
+                        <Calendar size={16} className="mr-2 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{series.giorno}</div>
+                          <div className="text-xs text-muted-foreground">{series.dataInizio} - {series.dataFine}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Clock size={16} className="mr-2 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">Ore {series.oraInizio}</div>
+                          <div className="text-xs text-muted-foreground">Campo {series.campo}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Hash size={16} className="mr-2 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{series.numeroLezioni} lezioni</div>
+                          <div className="text-xs text-muted-foreground">{series.lezioniPagate} pagate</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Euro size={16} className="mr-2 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{formatCurrency(series.importoTotale)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {series.importoDaPagare > 0 ? `${formatCurrency(series.importoDaPagare)} da pagare` : 'Saldato'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {series.noteAggiuntive && (
+                      <div className="text-sm italic text-muted-foreground bg-muted/50 p-3 rounded-md">
+                        Note: {series.noteAggiuntive}
+                      </div>
+                    )}
+                    
+                    <CollapsibleContent>
+                      <div className="mt-4 pt-4 border-t">
+                        <h4 className="font-semibold mb-3">Dettaglio Lezioni</h4>
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Orario</TableHead>
+                                <TableHead>Campo</TableHead>
+                                <TableHead>Importo</TableHead>
+                                <TableHead>Stato</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {series.prenotazioni.map((prenotazione) => (
+                                <TableRow key={prenotazione.id}>
+                                  <TableCell>{new Date(prenotazione.data).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</TableCell>
+                                  <TableCell>{prenotazione.ora_inizio.substring(0, 5)} - {prenotazione.ora_fine.substring(0, 5)}</TableCell>
+                                  <TableCell>Campo {prenotazione.campo}</TableCell>
+                                  <TableCell>{formatCurrency(Number(prenotazione.importo))}</TableCell>
+                                  <TableCell>
+                                    {prenotazione.stato_pagamento === 'pagato' ? (
+                                      <Badge variant="default" className="bg-green-600">
+                                        <CheckCircle size={12} className="mr-1" /> Pagato
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="destructive">
+                                        <XCircle size={12} className="mr-1" /> Da Pagare
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 bg-muted/30">
+                    <Button variant="outline" size="sm" onClick={() => { setSelectedSeries(series); setShowCancelDialog(true); }} disabled={isCanceling}>
+                      <Trash2 size={14} className="mr-1" /> Annulla Serie
+                    </Button>
+                    {!series.isCompletelyPaid && (
+                      <Button size="sm" onClick={() => handlePaySeries(series)} disabled={isPaying}>
+                        <CreditCard size={14} className="mr-1" /> Registra Pagamento ({formatCurrency(series.importoDaPagare)})
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              </Collapsible>
             ))}
           </div>
         )}
