@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Prenotazione, Socio, Ospite } from '@/types/database';
-import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, ChevronDown, ChevronUp, Euro } from 'lucide-react';
+import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, ChevronDown, ChevronUp, Euro, Edit } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -319,6 +319,9 @@ const GestioneRicorrenti = () => {
                     </CollapsibleContent>
                   </CardContent>
                   <CardFooter className="flex justify-end space-x-2 bg-muted/30">
+                    <Button variant="ghost" size="sm" disabled>
+                      <Edit size={14} className="mr-1" /> Modifica
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => { setSelectedSeries(series); setShowCancelDialog(true); }} disabled={isCanceling}>
                       <Trash2 size={14} className="mr-1" /> Annulla Serie
                     </Button>
