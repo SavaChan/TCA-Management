@@ -574,13 +574,7 @@ const Prenotazioni = () => {
       return 'bg-red-200 text-red-800 border border-red-400';
     }
     
-    // Se è pagata, usa la cache dei pagamenti se disponibile
-    const cachedColor = pagamentiCache[prenotazione.id];
-    if (cachedColor) {
-      return cachedColor;
-    }
-    
-    // Default per prenotazioni pagate senza info sul tipo di pagamento
+    // Per prenotazioni pagate, usa sempre lo stesso verde della legenda
     return 'bg-green-500 text-green-900 border border-green-600';
   };
 
