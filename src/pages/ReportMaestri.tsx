@@ -53,11 +53,16 @@ export default function ReportMaestri() {
       if (viewMode === 'month') {
         const [year, month] = selectedMonth.split('-');
         startDate = `${year}-${month}-01`;
-        endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+        // Calcola l'ultimo giorno del mese corretto
+        const monthIndex = parseInt(month) - 1; // Converti a base 0 per Date
+        const lastDay = new Date(parseInt(year), monthIndex + 1, 0).getDate();
+        endDate = `${year}-${month}-${lastDay.toString().padStart(2, '0')}`;
       } else {
         startDate = `${selectedYear}-01-01`;
         endDate = `${selectedYear}-12-31`;
       }
+
+      console.log('Report Maestri - Loading data:', { viewMode, startDate, endDate });
 
       // Carica tutti i dati necessari in parallelo
       const [prenotazioni, allSoci, allOspiti] = await Promise.all([
@@ -65,6 +70,9 @@ export default function ReportMaestri() {
         db.getSoci(),
         db.getOspiti()
       ]);
+
+      console.log('Report Maestri - Prenotazioni caricate:', prenotazioni.length);
+      console.log('Report Maestri - Corsi/Lezioni:', prenotazioni.filter((p: any) => p.tipo_prenotazione === 'corso' || p.tipo_prenotazione === 'lezione').length);
 
       // Crea mappa per tutti i soci che fanno corsi/lezioni
       const maestriStatsMap = new Map<string, MaestroStats>();
@@ -126,9 +134,12 @@ export default function ReportMaestri() {
         }
       });
 
-      setMaestriStats(Array.from(maestriStatsMap.values()).filter(stats => 
+      const finalStats = Array.from(maestriStatsMap.values()).filter(stats => 
         stats.oreCorsi > 0 || stats.oreLezioni > 0
-      ));
+      );
+      
+      console.log('Report Maestri - Statistiche finali:', finalStats.length, finalStats);
+      setMaestriStats(finalStats);
     } catch (error) {
       console.error('Errore nel caricamento dati maestri:', error);
       toast({
