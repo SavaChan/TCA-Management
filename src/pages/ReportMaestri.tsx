@@ -66,33 +66,33 @@ export default function ReportMaestri() {
         db.getOspiti()
       ]);
 
-      const maestri = allSoci.filter(socio => socio.tipo_socio === 'maestro');
-      const sociMap = new Map(allSoci.map(s => [s.id, s]));
-      const ospitiMap = new Map(allOspiti.map(o => [o.id, o]));
-
+      // Crea mappa per tutti i soci che fanno corsi/lezioni
       const maestriStatsMap = new Map<string, MaestroStats>();
-      maestri.forEach(maestro => {
-        maestriStatsMap.set(maestro.id, {
-          maestro,
-          oreCorsi: 0,
-          oreLezioni: 0,
-          importoCorsi: 0,
-          importoLezioni: 0,
-          importoTotale: 0,
-          importoCorsiPagato: 0,
-          importoLezioniPagato: 0,
-          importoCorsiDaPagare: 0,
-          importoLezioniDaPagare: 0,
-          prenotazioni: []
-        });
+
+      // Elabora le prenotazioni per trovare tutti i soci che fanno corsi/lezioni
+      prenotazioni.forEach((p: any) => {
+        if ((p.tipo_prenotazione === 'corso' || p.tipo_prenotazione === 'lezione') && p.socio_id) {
+          const socio = allSoci.find(s => s.id === p.socio_id);
+          if (socio && !maestriStatsMap.has(socio.id)) {
+            maestriStatsMap.set(socio.id, {
+              maestro: socio,
+              oreCorsi: 0,
+              oreLezioni: 0,
+              importoCorsi: 0,
+              importoLezioni: 0,
+              importoTotale: 0,
+              importoCorsiPagato: 0,
+              importoLezioniPagato: 0,
+              importoCorsiDaPagare: 0,
+              importoLezioniDaPagare: 0,
+              prenotazioni: []
+            });
+          }
+        }
       });
 
-      // Elabora le prenotazioni per associare i clienti
+      // Elabora le prenotazioni per calcolare le statistiche
       prenotazioni.forEach((p: any) => {
-        // Questa logica assume che le lezioni/corsi siano prenotate A NOME del maestro.
-        // Il cliente della lezione è nella nota.
-        // Es. nota: "corso_adulti - Mario Rossi - Lezione con maestro"
-        // Mario Rossi è il cliente, non il socio_id della prenotazione (che è il maestro).
         if ((p.tipo_prenotazione === 'corso' || p.tipo_prenotazione === 'lezione') && p.socio_id && maestriStatsMap.has(p.socio_id)) {
           const stats = maestriStatsMap.get(p.socio_id)!;
           const oraInizio = new Date(`2000-01-01T${p.ora_inizio}`);
