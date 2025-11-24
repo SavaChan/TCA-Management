@@ -77,11 +77,17 @@ export default function ReportMaestri() {
       // Crea mappa per tutti i soci che fanno corsi/lezioni
       const maestriStatsMap = new Map<string, MaestroStats>();
 
-      // Elabora le prenotazioni per trovare tutti i soci che fanno corsi/lezioni
+      // Elabora le prenotazioni per calcolare le statistiche
       prenotazioni.forEach((p: any) => {
         if ((p.tipo_prenotazione === 'corso' || p.tipo_prenotazione === 'lezione') && p.socio_id) {
           const socio = allSoci.find(s => s.id === p.socio_id);
-          if (socio && !maestriStatsMap.has(socio.id)) {
+          if (!socio) {
+            console.warn('Socio non trovato per prenotazione:', p.id, p.socio_id);
+            return;
+          }
+
+          // Inizializza il maestro nella mappa se non esiste
+          if (!maestriStatsMap.has(socio.id)) {
             maestriStatsMap.set(socio.id, {
               maestro: socio,
               oreCorsi: 0,
@@ -96,13 +102,9 @@ export default function ReportMaestri() {
               prenotazioni: []
             });
           }
-        }
-      });
 
-      // Elabora le prenotazioni per calcolare le statistiche
-      prenotazioni.forEach((p: any) => {
-        if ((p.tipo_prenotazione === 'corso' || p.tipo_prenotazione === 'lezione') && p.socio_id && maestriStatsMap.has(p.socio_id)) {
-          const stats = maestriStatsMap.get(p.socio_id)!;
+          // Calcola le statistiche per questa prenotazione
+          const stats = maestriStatsMap.get(socio.id)!;
           const oraInizio = new Date(`2000-01-01T${p.ora_inizio}`);
           const oraFine = new Date(`2000-01-01T${p.ora_fine}`);
           const ore = (oraFine.getTime() - oraInizio.getTime()) / (1000 * 60 * 60);
