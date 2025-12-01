@@ -35,10 +35,10 @@ class SupabaseProvider implements DatabaseProvider {
     let query = supabase
       .from('prenotazioni')
       .select(`
-        id, data, ora_inizio, ora_fine, campo, importo, tipo_prenotazione, 
-        stato_pagamento, created_at, note, diurno, tipo_campo,
-        soci (nome, cognome, telefono),
-        ospiti (nome, cognome, telefono)
+        id, socio_id, ospite_id, data, ora_inizio, ora_fine, campo, importo, tipo_prenotazione, 
+        stato_pagamento, created_at, note, diurno, tipo_campo, annullata_pioggia, data_annullamento_pioggia,
+        soci (id, nome, cognome, telefono, email, tipo_socio),
+        ospiti (id, nome, cognome, telefono, email)
       `);
 
     if (filters?.stato_pagamento) {
