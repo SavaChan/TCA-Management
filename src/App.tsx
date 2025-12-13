@@ -16,6 +16,7 @@ import ReportFinanziario from "./pages/ReportFinanziario";
 import ReportOspitiIva from "./pages/ReportOspitiIva";
 import ReportMaestri from "./pages/ReportMaestri";
 import GestioneRicorrenti from "./pages/GestioneRicorrenti";
+import ClassificaMVP from "./pages/ClassificaMVP";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="finanze" element={<ReportFinanziario />} />
             <Route path="iva-ospiti" element={<ReportOspitiIva />} />
             <Route path="maestri" element={<ReportMaestri />} />
+            <Route path="classifica" element={<ClassificaMVP />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

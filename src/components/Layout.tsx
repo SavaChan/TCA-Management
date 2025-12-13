@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Receipt,
   GraduationCap,
-  Repeat
+  Repeat,
+  Trophy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -130,6 +131,12 @@ const Layout = () => {
               <Link to="/tariffe">
                 <Settings className="h-4 w-4" />
                 <span>Tariffe</span>
+              </Link>
+            </Button>
+            <Button asChild variant={location.pathname === '/classifica' ? 'default' : 'outline'} className="flex items-center space-x-2">
+              <Link to="/classifica">
+                <Trophy className="h-4 w-4" />
+                <span>MVP</span>
               </Link>
             </Button>
           </div>
