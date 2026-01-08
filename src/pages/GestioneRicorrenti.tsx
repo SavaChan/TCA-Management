@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Prenotazione, Socio, Ospite } from '@/types/database';
-import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, ChevronDown, ChevronUp, Euro, Edit } from 'lucide-react';
+import { Repeat, Calendar, Clock, Hash, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, ChevronDown, ChevronUp, Euro } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -176,6 +176,50 @@ const GestioneRicorrenti = () => {
     }
   };
 
+  const handleToggleLessonPayment = async (prenotazione: Prenotazione & { soci: Socio | null, ospiti: Ospite | null }) => {
+    try {
+      const newStatus = prenotazione.stato_pagamento === 'pagato' ? 'da_pagare' : 'pagato';
+      
+      // Update the booking status
+      const { error: updateError } = await supabase
+        .from('prenotazioni')
+        .update({ stato_pagamento: newStatus })
+        .eq('id', prenotazione.id);
+      
+      if (updateError) throw updateError;
+
+      // If marking as paid, create a payment record
+      if (newStatus === 'pagato') {
+        const { error: insertError } = await supabase
+          .from('pagamenti')
+          .insert({
+            prenotazione_id: prenotazione.id,
+            importo: prenotazione.importo,
+            metodo_pagamento: 'Pagamento singola lezione',
+            metodo_pagamento_tipo: 'altro',
+            note: 'Pagamento registrato da gestione ricorrenti'
+          });
+        
+        if (insertError) throw insertError;
+      } else {
+        // If marking as unpaid, remove the payment record
+        await supabase
+          .from('pagamenti')
+          .delete()
+          .eq('prenotazione_id', prenotazione.id);
+      }
+
+      toast({ 
+        title: "Stato aggiornato", 
+        description: `Lezione segnata come ${newStatus === 'pagato' ? 'pagata' : 'da pagare'}` 
+      });
+      loadRicorrenti();
+    } catch (err) {
+      console.error("Error toggling lesson payment:", err);
+      toast({ title: "Errore", description: "Impossibile aggiornare lo stato del pagamento.", variant: "destructive" });
+    }
+  };
+
   const getStatusBadge = (series: RicorrenteSeries) => {
     if (series.isCompletelyPaid) {
       return <Badge variant="default" className="flex items-center gap-1 bg-green-600"><CheckCircle size={14} /> Saldato</Badge>;
@@ -290,6 +334,7 @@ const GestioneRicorrenti = () => {
                                 <TableHead>Campo</TableHead>
                                 <TableHead>Importo</TableHead>
                                 <TableHead>Stato</TableHead>
+                                <TableHead className="text-right">Azioni</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -310,6 +355,19 @@ const GestioneRicorrenti = () => {
                                       </Badge>
                                     )}
                                   </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      size="sm"
+                                      variant={prenotazione.stato_pagamento === 'pagato' ? 'outline' : 'default'}
+                                      onClick={() => handleToggleLessonPayment(prenotazione)}
+                                    >
+                                      {prenotazione.stato_pagamento === 'pagato' ? (
+                                        <><XCircle size={14} className="mr-1" /> Segna non pagato</>
+                                      ) : (
+                                        <><CheckCircle size={14} className="mr-1" /> Segna pagato</>
+                                      )}
+                                    </Button>
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -319,9 +377,6 @@ const GestioneRicorrenti = () => {
                     </CollapsibleContent>
                   </CardContent>
                   <CardFooter className="flex justify-end space-x-2 bg-muted/30">
-                    <Button variant="ghost" size="sm" disabled>
-                      <Edit size={14} className="mr-1" /> Modifica
-                    </Button>
                     <Button variant="outline" size="sm" onClick={() => { setSelectedSeries(series); setShowCancelDialog(true); }} disabled={isCanceling}>
                       <Trash2 size={14} className="mr-1" /> Annulla Serie
                     </Button>

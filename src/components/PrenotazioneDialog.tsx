@@ -58,6 +58,7 @@ const PrenotazioneDialog = ({
   const [importo, setImporto] = useState<number>(0);
   const [tariffe, setTariffe] = useState<Tariffa[]>([]);
   const [selectedTariffaId, setSelectedTariffaId] = useState<string>('manuale');
+  const [note, setNote] = useState<string>('');
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   
   // Stati per dialog di creazione
@@ -259,6 +260,7 @@ const PrenotazioneDialog = ({
             diurno: parseInt(slot.ora.split(':')[0]) >= 8 && parseInt(slot.ora.split(':')[0]) < 20,
             importo,
             stato_pagamento: 'da_pagare' as const,
+            note: note || null,
           };
         });
 
@@ -285,6 +287,7 @@ const PrenotazioneDialog = ({
             diurno: parseInt(oraInizio.split(':')[0]) >= 8 && parseInt(oraInizio.split(':')[0]) < 20,
             importo,
             stato_pagamento: 'da_pagare' as const,
+            note: note || null,
           }]);
 
         if (prenotazioneError) {
@@ -343,6 +346,7 @@ const PrenotazioneDialog = ({
     setImporto(0);
     setTariffe([]);
     setSelectedTariffaId('manuale');
+    setNote('');
   };
 
   return (
@@ -636,6 +640,17 @@ const PrenotazioneDialog = ({
               <div className="text-2xl font-bold">€{importo.toFixed(2)}</div>
             </div>
           )}
+
+          {/* Note */}
+          <div className="space-y-2">
+            <Label htmlFor="note">Note (opzionale)</Label>
+            <Input
+              id="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Aggiungi note sulla prenotazione..."
+            />
+          </div>
 
           {/* Pulsanti */}
           <div className="flex justify-end space-x-2 pt-4">
