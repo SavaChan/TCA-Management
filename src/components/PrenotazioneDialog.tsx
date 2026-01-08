@@ -34,7 +34,8 @@ const PrenotazioneDialog = ({
   onSuccess,
   multipleSlots 
 }: PrenotazioneDialogProps) => {
-  const [tipoCliente, setTipoCliente] = useState<'socio' | 'ospite'>('socio');
+  const [tipoCliente, setTipoCliente] = useState<'socio' | 'ospite' | 'competizione'>('socio');
+  const [tipoCompetizione, setTipoCompetizione] = useState<'gara_squadre' | 'torneo'>('gara_squadre');
   const [soci, setSoci] = useState<Socio[]>([]);
   const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
   const [socioSearch, setSocioSearch] = useState('');
@@ -174,6 +175,8 @@ const PrenotazioneDialog = ({
       return;
     }
 
+    // Per competizione non servono validazioni particolari
+
     setLoading(true);
 
     try {
@@ -203,8 +206,13 @@ const PrenotazioneDialog = ({
 
       let socioId = null;
       let ospiteId = null;
+      let noteCompetizione = note;
 
-      if (tipoCliente === 'ospite') {
+      if (tipoCliente === 'competizione') {
+        // Per competizione, aggiungiamo il tipo nelle note
+        const tipoComp = tipoCompetizione === 'gara_squadre' ? 'Gara a Squadre' : 'Torneo';
+        noteCompetizione = tipoComp + (note ? ' - ' + note : '');
+      } else if (tipoCliente === 'ospite') {
         if (selectedOspite) {
           // Usa ospite esistente
           ospiteId = selectedOspite.id;
@@ -260,7 +268,7 @@ const PrenotazioneDialog = ({
             diurno: parseInt(slot.ora.split(':')[0]) >= 8 && parseInt(slot.ora.split(':')[0]) < 20,
             importo,
             stato_pagamento: 'da_pagare' as const,
-            note: note || null,
+            note: tipoCliente === 'competizione' ? noteCompetizione : (note || null),
           };
         });
 
@@ -287,7 +295,7 @@ const PrenotazioneDialog = ({
             diurno: parseInt(oraInizio.split(':')[0]) >= 8 && parseInt(oraInizio.split(':')[0]) < 20,
             importo,
             stato_pagamento: 'da_pagare' as const,
-            note: note || null,
+            note: tipoCliente === 'competizione' ? noteCompetizione : (note || null),
           }]);
 
         if (prenotazioneError) {
@@ -334,6 +342,7 @@ const PrenotazioneDialog = ({
 
   const resetForm = () => {
     setTipoCliente('socio');
+    setTipoCompetizione('gara_squadre');
     setSelectedSocio(null);
     setSocioSearch('');
     setSelectedOspite(null);
@@ -368,7 +377,7 @@ const PrenotazioneDialog = ({
           {/* Tipo Cliente */}
           <div className="space-y-2">
             <Label>Tipo Cliente</Label>
-            <RadioGroup value={tipoCliente} onValueChange={(value: 'socio' | 'ospite') => setTipoCliente(value)}>
+            <RadioGroup value={tipoCliente} onValueChange={(value: 'socio' | 'ospite' | 'competizione') => setTipoCliente(value)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="socio" id="socio" />
                 <Label htmlFor="socio">Socio</Label>
@@ -377,8 +386,29 @@ const PrenotazioneDialog = ({
                 <RadioGroupItem value="ospite" id="ospite" />
                 <Label htmlFor="ospite">Ospite</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="competizione" id="competizione" />
+                <Label htmlFor="competizione">Competizione</Label>
+              </div>
             </RadioGroup>
           </div>
+
+          {/* Tipo Competizione - visibile solo se selezionato "Competizione" */}
+          {tipoCliente === 'competizione' && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary/30">
+              <Label>Tipo Competizione</Label>
+              <RadioGroup value={tipoCompetizione} onValueChange={(value: 'gara_squadre' | 'torneo') => setTipoCompetizione(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="gara_squadre" id="gara_squadre" />
+                  <Label htmlFor="gara_squadre">Gara a Squadre</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="torneo" id="torneo" />
+                  <Label htmlFor="torneo">Torneo</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
           {/* Selezione Socio */}
           {tipoCliente === 'socio' && (
