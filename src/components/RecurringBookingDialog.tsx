@@ -179,8 +179,8 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
         }
       }
 
-      // 4. Crea gli oggetti prenotazione
-      const statoPagamento = formData.tipoCorso.includes('abbonamento') ? 'da_pagare' : 'pagato';
+      // 4. Crea gli oggetti prenotazione - tutte le ricorrenti sono da_pagare di default
+      const statoPagamento = 'da_pagare';
       const noteRicorrente = `${formData.tipoCorso} - ${formData.nome} ${formData.cognome}${formData.note ? ' - ' + formData.note : ''}`;
       
       const prenotazioni = potentialSlots.map(slot => {
@@ -207,20 +207,8 @@ const RecurringBookingDialog = ({ open, onOpenChange, onSuccess }: RecurringBook
       const { error: prenotazioniError } = await supabase.from('prenotazioni').insert(prenotazioni);
       if (prenotazioniError) throw prenotazioniError;
 
-      // 6. Crea i pagamenti se necessario
-      if (statoPagamento === 'pagato') {
-        const { data: prenotazioniInserite } = await supabase.from('prenotazioni').select('id').gte('data', formData.dataInizio).lte('data', formData.dataFine).eq('note', noteRicorrente);
-        if (prenotazioniInserite && prenotazioniInserite.length > 0) {
-          const pagamenti = prenotazioniInserite.map(p => ({
-            prenotazione_id: p.id,
-            importo: formData.tariffaSpeciale,
-            metodo_pagamento: `Corso ${formData.tipoCorso}`,
-            metodo_pagamento_tipo: 'corso',
-            note: `Pagamento anticipato corso ricorrente - ${formData.nome} ${formData.cognome}`
-          }));
-          await supabase.from('pagamenti').insert(pagamenti);
-        }
-      }
+      // Le prenotazioni ricorrenti sono sempre create come 'da_pagare'
+      // I pagamenti verranno registrati dalla pagina Gestione Ricorrenti
 
       toast({
         title: "Prenotazioni ricorrenti create",

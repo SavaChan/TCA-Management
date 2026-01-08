@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Users, Euro, CloudRain, AlertTriangle, Trash2, MoreVertical, Pencil } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
@@ -796,50 +797,64 @@ const Prenotazioni = () => {
                                       )}
                                     </div>
                                    
-                                   {/* Menu contestuale con icone */}
-                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                                     {/* Elimina ora */}
-                                     <Button
-                                       size="sm"
-                                       variant="destructive"
-                                       className="h-6 w-6 p-0"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         handleDeleteHour(prenotazione, time);
-                                       }}
-                                       title="Elimina questa ora"
-                                     >
-                                       <Trash2 size={12} />
-                                     </Button>
-                                     
-                                     {/* Annulla per pioggia / Ripristina */}
-                                     {!prenotazione.annullata_pioggia ? (
-                                       <Button
-                                         size="sm"
-                                         variant="secondary"
-                                         className="h-6 w-6 p-0"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           handleAnnullaPioggia(prenotazione, time);
-                                         }}
-                                         title="Annulla questa ora per pioggia"
-                                       >
-                                         <CloudRain size={12} />
-                                       </Button>
-                                     ) : (
-                                       <Button
-                                         size="sm"
-                                         variant="outline"
-                                         className="h-6 w-6 p-0 bg-green-50"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           handleRipristinaPrenotazione(prenotazione);
-                                         }}
-                                         title="Ripristina prenotazione"
-                                       >
-                                         <AlertTriangle size={12} />
-                                       </Button>
-                                     )}
+                                   {/* Menu contestuale con dropdown */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                     <DropdownMenu>
+                                       <DropdownMenuTrigger asChild>
+                                         <Button
+                                           size="sm"
+                                           variant="secondary"
+                                           className="h-6 w-6 p-0"
+                                           onClick={(e) => e.stopPropagation()}
+                                         >
+                                           <MoreVertical size={12} />
+                                         </Button>
+                                       </DropdownMenuTrigger>
+                                       <DropdownMenuContent align="end">
+                                         <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             setSelectedPrenotazione(prenotazione);
+                                             setBookingDetailOpen(true);
+                                           }}
+                                         >
+                                           <Pencil size={14} className="mr-2" />
+                                           Modifica
+                                         </DropdownMenuItem>
+                                         <DropdownMenuSeparator />
+                                         {!prenotazione.annullata_pioggia ? (
+                                           <DropdownMenuItem
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleAnnullaPioggia(prenotazione, time);
+                                             }}
+                                           >
+                                             <CloudRain size={14} className="mr-2" />
+                                             Annulla per pioggia
+                                           </DropdownMenuItem>
+                                         ) : (
+                                           <DropdownMenuItem
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleRipristinaPrenotazione(prenotazione);
+                                             }}
+                                           >
+                                             <AlertTriangle size={14} className="mr-2" />
+                                             Ripristina
+                                           </DropdownMenuItem>
+                                         )}
+                                         <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleDeleteHour(prenotazione, time);
+                                           }}
+                                           className="text-destructive"
+                                         >
+                                           <Trash2 size={14} className="mr-2" />
+                                           Elimina ora
+                                         </DropdownMenuItem>
+                                       </DropdownMenuContent>
+                                     </DropdownMenu>
                                    </div>
                                  </div>
                                ) : (
@@ -947,50 +962,64 @@ const Prenotazioni = () => {
                                       )}
                                     </div>
                                    
-                                   {/* Menu contestuale con icone */}
-                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                                     {/* Elimina ora */}
-                                     <Button
-                                       size="sm"
-                                       variant="destructive"
-                                       className="h-6 w-6 p-0"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         handleDeleteHour(prenotazione, time);
-                                       }}
-                                       title="Elimina questa ora"
-                                     >
-                                       <Trash2 size={12} />
-                                     </Button>
-                                     
-                                     {/* Annulla per pioggia / Ripristina */}
-                                     {!prenotazione.annullata_pioggia ? (
-                                       <Button
-                                         size="sm"
-                                         variant="secondary"
-                                         className="h-6 w-6 p-0"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           handleAnnullaPioggia(prenotazione, time);
-                                         }}
-                                         title="Annulla questa ora per pioggia"
-                                       >
-                                         <CloudRain size={12} />
-                                       </Button>
-                                     ) : (
-                                       <Button
-                                         size="sm"
-                                         variant="outline"
-                                         className="h-6 w-6 p-0 bg-green-50"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           handleRipristinaPrenotazione(prenotazione);
-                                         }}
-                                         title="Ripristina prenotazione"
-                                       >
-                                         <AlertTriangle size={12} />
-                                       </Button>
-                                     )}
+                                   {/* Menu contestuale con dropdown */}
+                                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                     <DropdownMenu>
+                                       <DropdownMenuTrigger asChild>
+                                         <Button
+                                           size="sm"
+                                           variant="secondary"
+                                           className="h-6 w-6 p-0"
+                                           onClick={(e) => e.stopPropagation()}
+                                         >
+                                           <MoreVertical size={12} />
+                                         </Button>
+                                       </DropdownMenuTrigger>
+                                       <DropdownMenuContent align="end">
+                                         <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             setSelectedPrenotazione(prenotazione);
+                                             setBookingDetailOpen(true);
+                                           }}
+                                         >
+                                           <Pencil size={14} className="mr-2" />
+                                           Modifica
+                                         </DropdownMenuItem>
+                                         <DropdownMenuSeparator />
+                                         {!prenotazione.annullata_pioggia ? (
+                                           <DropdownMenuItem
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleAnnullaPioggia(prenotazione, time);
+                                             }}
+                                           >
+                                             <CloudRain size={14} className="mr-2" />
+                                             Annulla per pioggia
+                                           </DropdownMenuItem>
+                                         ) : (
+                                           <DropdownMenuItem
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleRipristinaPrenotazione(prenotazione);
+                                             }}
+                                           >
+                                             <AlertTriangle size={14} className="mr-2" />
+                                             Ripristina
+                                           </DropdownMenuItem>
+                                         )}
+                                         <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleDeleteHour(prenotazione, time);
+                                           }}
+                                           className="text-destructive"
+                                         >
+                                           <Trash2 size={14} className="mr-2" />
+                                           Elimina ora
+                                         </DropdownMenuItem>
+                                       </DropdownMenuContent>
+                                     </DropdownMenu>
                                    </div>
                                  </div>
                                ) : (
