@@ -105,6 +105,10 @@ const Report = () => {
     const prenotazioniOspiti = prenotazioni.filter(p => p.ospite_id && !isCompetizione(p));
     const prenotazioniCompetizione = prenotazioni.filter(p => isCompetizione(p));
     
+    // Filtra corsi
+    const prenotazioniCorsi = prenotazioni.filter(p => p.tipo_prenotazione === 'corso');
+    const corsiPagati = prenotazioniCorsi.filter(p => p.stato_pagamento === 'pagato');
+    
     const oreTotali = prenotazioni.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     const orePagate = pagate.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     const oreDaPagare = daPagare.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
@@ -114,6 +118,12 @@ const Report = () => {
     const oreOspiti = prenotazioniOspiti.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     const oreCompetizione = prenotazioniCompetizione.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     
+    // Totali corsi (esente IVA e con IVA 11%)
+    const oreCorsi = prenotazioniCorsi.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    const totaleCorsiEsenteIva = corsiPagati.reduce((sum, p) => sum + p.importo, 0);
+    const totaleCorsiConIva = totaleCorsiEsenteIva * 1.11;
+    const corsiDaPagare = prenotazioniCorsi.filter(p => p.stato_pagamento === 'da_pagare').reduce((sum, p) => sum + p.importo, 0);
+    
     return {
       oreTotali,
       orePagate,
@@ -121,6 +131,10 @@ const Report = () => {
       oreSoci,
       oreOspiti,
       oreCompetizione,
+      oreCorsi,
+      totaleCorsiEsenteIva,
+      totaleCorsiConIva,
+      corsiDaPagare,
       incassoTotale: pagate.reduce((sum, p) => sum + p.importo, 0),
       creditiDaRiscuotere: daPagare.reduce((sum, p) => sum + p.importo, 0),
     };
@@ -430,7 +444,41 @@ const Report = () => {
         </Card>
       </div>
 
-      {/* Report prenotazioni da pagare */}
+      {/* Riepilogo Corsi con IVA */}
+      <Card className="border-purple-200 bg-purple-50/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-700">
+            <Calendar className="h-5 w-5" />
+            Riepilogo Corsi - IVA 11%
+          </CardTitle>
+          <CardDescription>
+            Totale corsi del periodo per pagamento mensile maestro
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-muted-foreground">Ore Corsi</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.oreCorsi.toFixed(1)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-muted-foreground">Incassato (esente IVA)</p>
+              <p className="text-2xl font-bold text-purple-600">€{stats.totaleCorsiEsenteIva.toFixed(2)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-muted-foreground">Con IVA 11%</p>
+              <p className="text-2xl font-bold text-purple-800">€{stats.totaleCorsiConIva.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">IVA: €{(stats.totaleCorsiConIva - stats.totaleCorsiEsenteIva).toFixed(2)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-orange-200">
+              <p className="text-sm text-muted-foreground">Corsi da pagare</p>
+              <p className="text-2xl font-bold text-orange-600">€{stats.corsiDaPagare.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Con IVA: €{(stats.corsiDaPagare * 1.11).toFixed(2)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
