@@ -500,7 +500,24 @@ const Prenotazioni = () => {
     await loadPagamentiCache();
   };
 
+  // Verifica se è una prenotazione di tipo competizione
+  const isCompetizione = (prenotazione: Prenotazione) => {
+    return !prenotazione.socio_id && !prenotazione.ospite_id && 
+           prenotazione.note && (prenotazione.note.startsWith('Gara a Squadre') || prenotazione.note.startsWith('Torneo'));
+  };
+
   const getNomePrenotazione = (prenotazione: Prenotazione) => {
+    // Se è una competizione, mostra il tipo
+    if (isCompetizione(prenotazione)) {
+      const note = prenotazione.note || '';
+      if (note.startsWith('Gara a Squadre')) {
+        return 'Gara a Squadre';
+      } else if (note.startsWith('Torneo')) {
+        return 'Torneo';
+      }
+      return 'Competizione';
+    }
+
     // Se è un corso, mostra "Corsi" e opzionalmente il nome del maestro
     if (prenotazione.tipo_prenotazione === 'corso') {
       if (prenotazione.note && prenotazione.note.includes(' - ')) {
@@ -560,6 +577,11 @@ const Prenotazioni = () => {
     // Se annullata per pioggia, usa uno stile specifico
     if (prenotazione.annullata_pioggia) {
       return 'bg-red-200 text-red-800 border border-red-400 opacity-70';
+    }
+
+    // Se è una competizione, usa un colore ciano/teal distintivo
+    if (isCompetizione(prenotazione)) {
+      return 'bg-cyan-300 text-cyan-900 border border-cyan-500';
     }
     
     // Se è una prenotazione ricorrente (corso), usa un colore specifico
@@ -1082,6 +1104,10 @@ const Prenotazioni = () => {
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-orange-400 rounded border border-orange-600"></div>
               <span className="text-sm">Corsi/Abbonamenti (da pagare)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-cyan-300 rounded border border-cyan-500"></div>
+              <span className="text-sm">Competizione (Gara/Torneo)</span>
             </div>
           </div>
         </CardContent>

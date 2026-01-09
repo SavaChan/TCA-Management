@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Euro, AlertCircle, Calendar } from 'lucide-react';
+import { Download, Euro, AlertCircle, Calendar, Users, User, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Prenotazione } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
@@ -90,18 +90,37 @@ const Report = () => {
     return (minutiFine - minutiInizio) / 60;
   };
 
+  // Verifica se è una prenotazione di tipo competizione
+  const isCompetizione = (prenotazione: Prenotazione) => {
+    return !prenotazione.socio_id && !prenotazione.ospite_id && 
+           prenotazione.note && (prenotazione.note.startsWith('Gara a Squadre') || prenotazione.note.startsWith('Torneo'));
+  };
+
   const getMonthStats = () => {
     const pagate = prenotazioni.filter(p => p.stato_pagamento === 'pagato');
     const daPagare = prenotazioni.filter(p => p.stato_pagamento === 'da_pagare');
+    
+    // Filtra per tipo cliente
+    const prenotazioniSoci = prenotazioni.filter(p => p.socio_id && !isCompetizione(p));
+    const prenotazioniOspiti = prenotazioni.filter(p => p.ospite_id && !isCompetizione(p));
+    const prenotazioniCompetizione = prenotazioni.filter(p => isCompetizione(p));
     
     const oreTotali = prenotazioni.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     const orePagate = pagate.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     const oreDaPagare = daPagare.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
     
+    // Ore per tipo cliente
+    const oreSoci = prenotazioniSoci.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    const oreOspiti = prenotazioniOspiti.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    const oreCompetizione = prenotazioniCompetizione.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    
     return {
       oreTotali,
       orePagate,
       oreDaPagare,
+      oreSoci,
+      oreOspiti,
+      oreCompetizione,
       incassoTotale: pagate.reduce((sum, p) => sum + p.importo, 0),
       creditiDaRiscuotere: daPagare.reduce((sum, p) => sum + p.importo, 0),
     };
@@ -286,7 +305,7 @@ const Report = () => {
       </div>
 
       {/* Statistiche mensili */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -343,6 +362,54 @@ const Report = () => {
             <div className="text-2xl font-bold text-green-600">€{stats.incassoTotale.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               Pagamenti ricevuti
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Statistiche per tipo cliente */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Ore Soci
+            </CardTitle>
+            <Users className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-600">{stats.oreSoci.toFixed(1)}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.oreTotali > 0 ? Math.round((stats.oreSoci / stats.oreTotali) * 100) : 0}% del totale
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Ore Ospiti
+            </CardTitle>
+            <User className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{stats.oreOspiti.toFixed(1)}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.oreTotali > 0 ? Math.round((stats.oreOspiti / stats.oreTotali) * 100) : 0}% del totale
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Ore Competizione
+            </CardTitle>
+            <Trophy className="h-4 w-4 text-cyan-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-cyan-600">{stats.oreCompetizione.toFixed(1)}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.oreTotali > 0 ? Math.round((stats.oreCompetizione / stats.oreTotali) * 100) : 0}% del totale (no incasso)
             </p>
           </CardContent>
         </Card>
