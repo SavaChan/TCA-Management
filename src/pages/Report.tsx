@@ -81,14 +81,27 @@ const Report = () => {
     }
   };
 
+  // Calcola le ore dalla differenza tra ora_fine e ora_inizio
+  const calculateHours = (oraInizio: string, oraFine: string): number => {
+    const [hInizio, mInizio] = oraInizio.split(':').map(Number);
+    const [hFine, mFine] = oraFine.split(':').map(Number);
+    const minutiInizio = hInizio * 60 + mInizio;
+    const minutiFine = hFine * 60 + mFine;
+    return (minutiFine - minutiInizio) / 60;
+  };
+
   const getMonthStats = () => {
     const pagate = prenotazioni.filter(p => p.stato_pagamento === 'pagato');
     const daPagare = prenotazioni.filter(p => p.stato_pagamento === 'da_pagare');
     
+    const oreTotali = prenotazioni.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    const orePagate = pagate.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    const oreDaPagare = daPagare.reduce((sum, p) => sum + calculateHours(p.ora_inizio, p.ora_fine), 0);
+    
     return {
-      totalePrenotazioni: prenotazioni.length,
-      prenotazioniPagate: pagate.length,
-      prenotazioniDaPagare: daPagare.length,
+      oreTotali,
+      orePagate,
+      oreDaPagare,
       incassoTotale: pagate.reduce((sum, p) => sum + p.importo, 0),
       creditiDaRiscuotere: daPagare.reduce((sum, p) => sum + p.importo, 0),
     };
@@ -277,12 +290,12 @@ const Report = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Prenotazioni Totali
+              Ore Totali
             </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalePrenotazioni}</div>
+            <div className="text-2xl font-bold">{stats.oreTotali.toFixed(1)}</div>
             <p className="text-xs text-muted-foreground">
               {getPeriodLabel()}
             </p>
@@ -292,14 +305,14 @@ const Report = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Prenotazioni Pagate
+              Ore Pagate
             </CardTitle>
             <div className="h-4 w-4 bg-blue-500 rounded-full" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.prenotazioniPagate}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.orePagate.toFixed(1)}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.totalePrenotazioni > 0 ? Math.round((stats.prenotazioniPagate / stats.totalePrenotazioni) * 100) : 0}% del totale
+              {stats.oreTotali > 0 ? Math.round((stats.orePagate / stats.oreTotali) * 100) : 0}% del totale
             </p>
           </CardContent>
         </Card>
@@ -307,14 +320,14 @@ const Report = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Da Pagare
+              Ore da Pagare
             </CardTitle>
             <AlertCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.prenotazioniDaPagare}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.oreDaPagare.toFixed(1)}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.totalePrenotazioni > 0 ? Math.round((stats.prenotazioniDaPagare / stats.totalePrenotazioni) * 100) : 0}% del totale
+              {stats.oreTotali > 0 ? Math.round((stats.oreDaPagare / stats.oreTotali) * 100) : 0}% del totale
             </p>
           </CardContent>
         </Card>
