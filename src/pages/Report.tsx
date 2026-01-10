@@ -96,6 +96,25 @@ const Report = () => {
            prenotazione.note && (prenotazione.note.startsWith('Gara a Squadre') || prenotazione.note.startsWith('Torneo'));
   };
 
+  // Ottiene il nome del cliente (socio, ospite o tipo competizione)
+  const getClienteName = (prenotazione: Prenotazione): string => {
+    if (prenotazione.soci) {
+      return `${prenotazione.soci.cognome} ${prenotazione.soci.nome}`;
+    }
+    if (prenotazione.ospite_id) {
+      return 'Ospite';
+    }
+    if (isCompetizione(prenotazione)) {
+      if (prenotazione.note?.startsWith('Gara a Squadre')) {
+        return 'Gara a Squadre';
+      }
+      if (prenotazione.note?.startsWith('Torneo')) {
+        return 'Torneo';
+      }
+    }
+    return 'N/D';
+  };
+
   const getMonthStats = () => {
     const pagate = prenotazioni.filter(p => p.stato_pagamento === 'pagato');
     const daPagare = prenotazioni.filter(p => p.stato_pagamento === 'da_pagare');
@@ -144,8 +163,8 @@ const Report = () => {
     return prenotazioni
       .filter(p => p.stato_pagamento === 'da_pagare')
       .sort((a, b) => {
-        const nomeA = `${a.soci?.cognome} ${a.soci?.nome}`;
-        const nomeB = `${b.soci?.cognome} ${b.soci?.nome}`;
+        const nomeA = getClienteName(a);
+        const nomeB = getClienteName(b);
         return nomeA.localeCompare(nomeB);
       });
   };
@@ -188,7 +207,7 @@ const Report = () => {
 
   const exportToExcel = () => {
     const data = daPagareReport.map(p => ({
-      'Socio': `${p.soci?.cognome} ${p.soci?.nome}`,
+      'Cliente': getClienteName(p),
       'Telefono': p.soci?.telefono || '-',
       'Data': new Date(p.data).toLocaleDateString('it-IT'),
       'Orario': `${p.ora_inizio} - ${p.ora_fine}`,
@@ -503,7 +522,7 @@ const Report = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Socio</TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Telefono</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Orario</TableHead>
@@ -516,7 +535,7 @@ const Report = () => {
                 {daPagareReport.map((prenotazione) => (
                   <TableRow key={prenotazione.id}>
                     <TableCell className="font-medium">
-                      {prenotazione.soci?.cognome} {prenotazione.soci?.nome}
+                      {getClienteName(prenotazione)}
                     </TableCell>
                     <TableCell>{prenotazione.soci?.telefono || '-'}</TableCell>
                     <TableCell>
