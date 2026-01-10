@@ -90,7 +90,7 @@ const ReportInsoluti = () => {
 
   /* --- LOGICA CLIENTI --- */
   const getNomeCliente = (p: PrenotazioneInsoluta) =>
-    (p.soci ? `${p.soci.cognome} ${p.soci.nome}` : p.ospiti ? `${p.ospiti.cognome} ${p.ospiti.nome}` : 'Nome non disponibile');
+    (p.soci ? `${p.soci.cognome} ${p.soci.nome}` : p.ospiti ? `${p.ospiti.cognome} ${p.ospiti.nome}` : 'Competizione');
 
   const getTelefono = (p: PrenotazioneInsoluta) =>
     p.soci?.telefono ?? p.ospiti?.telefono ?? 'Non disponibile';
@@ -105,7 +105,9 @@ const ReportInsoluti = () => {
 
   const getClientiTotali = (): ClienteTotale[] => {
     const map = new Map<string, ClienteTotale>();
-    insoluti.forEach(p => {
+    // Filtra solo prenotazioni con socio o ospite (escludi competizioni)
+    const insolutiConCliente = insoluti.filter(p => p.soci || p.ospiti);
+    insolutiConCliente.forEach(p => {
       const tipo = p.soci ? 'socio' : 'ospite';
       const nome = tipo === 'socio' ? p.soci! : p.ospiti!;
       const key = `${nome.cognome}_${nome.nome}_${tipo}`;
